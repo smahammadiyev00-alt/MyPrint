@@ -1,0 +1,118 @@
+<html>
+<head>
+<title>AppNovHost.kt</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #7a7e85;}
+.s4 { color: #6aab73;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+AppNovHost.kt</font>
+</center></td></tr></table>
+<pre><span class="s0">package </span><span class="s1">uz</span><span class="s2">.</span><span class="s1">myprint</span><span class="s2">.</span><span class="s1">core</span><span class="s2">.</span><span class="s1">navigation</span>
+
+<span class="s1">import androidx</span><span class="s2">.</span><span class="s1">compose</span><span class="s2">.</span><span class="s1">runtime</span><span class="s2">.</span><span class="s1">Composable</span>
+<span class="s1">import androidx</span><span class="s2">.</span><span class="s1">navigation</span><span class="s2">.</span><span class="s1">NavType</span>
+<span class="s1">import androidx</span><span class="s2">.</span><span class="s1">navigation</span><span class="s2">.</span><span class="s1">compose</span><span class="s2">.</span><span class="s1">NavHost</span>
+<span class="s1">import androidx</span><span class="s2">.</span><span class="s1">navigation</span><span class="s2">.</span><span class="s1">compose</span><span class="s2">.</span><span class="s1">composable</span>
+<span class="s1">import androidx</span><span class="s2">.</span><span class="s1">navigation</span><span class="s2">.</span><span class="s1">compose</span><span class="s2">.</span><span class="s1">rememberNavController</span>
+<span class="s1">import androidx</span><span class="s2">.</span><span class="s1">navigation</span><span class="s2">.</span><span class="s1">navArgument</span>
+<span class="s1">import uz</span><span class="s2">.</span><span class="s1">myprint</span><span class="s2">.</span><span class="s1">feature</span><span class="s2">.</span><span class="s1">feature</span><span class="s2">.</span><span class="s1">home</span><span class="s2">.</span><span class="s1">HomeScreen</span>
+<span class="s1">import uz</span><span class="s2">.</span><span class="s1">myprint</span><span class="s2">.</span><span class="s1">feature</span><span class="s2">.</span><span class="s1">feature</span><span class="s2">.</span><span class="s1">product</span><span class="s2">.</span><span class="s1">presentation</span><span class="s2">.</span><span class="s1">route</span><span class="s2">.</span><span class="s1">ProductRoute</span>
+<span class="s1">import uz</span><span class="s2">.</span><span class="s1">myprint</span><span class="s2">.</span><span class="s1">feature</span><span class="s2">.</span><span class="s1">login</span><span class="s2">.</span><span class="s1">LoginScreen</span>
+<span class="s1">import uz</span><span class="s2">.</span><span class="s1">myprint</span><span class="s2">.</span><span class="s1">feature</span><span class="s2">.</span><span class="s1">otp</span><span class="s2">.</span><span class="s1">OtpScreen</span>
+<span class="s1">import uz</span><span class="s2">.</span><span class="s1">myprint</span><span class="s2">.</span><span class="s1">feature</span><span class="s2">.</span><span class="s1">splashscreen</span><span class="s2">.</span><span class="s1">SplashScreen</span>
+
+<span class="s1">@Composable</span>
+<span class="s0">fun </span><span class="s1">AppNavHost</span><span class="s2">() {</span>
+
+    <span class="s0">val </span><span class="s1">navController </span><span class="s2">= </span><span class="s1">rememberNavController</span><span class="s2">()</span>
+
+    <span class="s1">NavHost</span><span class="s2">(</span>
+        <span class="s1">navController </span><span class="s2">= </span><span class="s1">navController</span><span class="s2">,</span>
+        <span class="s1">startDestination </span><span class="s2">= </span><span class="s1">Screen</span><span class="s2">.</span><span class="s1">Splash</span><span class="s2">.</span><span class="s1">route</span>
+    <span class="s2">) {</span>
+
+        <span class="s1">composable</span><span class="s2">(</span><span class="s1">Screen</span><span class="s2">.</span><span class="s1">Splash</span><span class="s2">.</span><span class="s1">route</span><span class="s2">) {</span>
+            <span class="s1">SplashScreen</span><span class="s2">(</span>
+                <span class="s1">onSplashFinished </span><span class="s2">= {</span>
+                    <span class="s1">navController</span><span class="s2">.</span><span class="s1">navigate</span><span class="s2">(</span><span class="s1">Screen</span><span class="s2">.</span><span class="s1">Login</span><span class="s2">.</span><span class="s1">route</span><span class="s2">) {</span>
+                        <span class="s1">popUpTo</span><span class="s2">(</span><span class="s1">Screen</span><span class="s2">.</span><span class="s1">Splash</span><span class="s2">.</span><span class="s1">route</span><span class="s2">) {</span>
+                            <span class="s1">inclusive </span><span class="s2">= </span><span class="s0">true</span>
+                        <span class="s2">}</span>
+                    <span class="s2">}</span>
+                <span class="s2">}</span>
+            <span class="s2">)</span>
+        <span class="s2">}</span>
+
+        <span class="s1">composable</span><span class="s2">(</span><span class="s1">Screen</span><span class="s2">.</span><span class="s1">Login</span><span class="s2">.</span><span class="s1">route</span><span class="s2">) {</span>
+            <span class="s1">LoginScreen</span><span class="s2">(</span>
+                <span class="s1">onContinueClick </span><span class="s2">= {</span>
+                    <span class="s1">navController</span><span class="s2">.</span><span class="s1">navigate</span><span class="s2">(</span><span class="s1">Screen</span><span class="s2">.</span><span class="s1">Otp</span><span class="s2">.</span><span class="s1">route</span><span class="s2">)</span>
+                <span class="s2">}</span>
+            <span class="s2">)</span>
+        <span class="s2">}</span>
+
+        <span class="s1">composable</span><span class="s2">(</span><span class="s1">Screen</span><span class="s2">.</span><span class="s1">Otp</span><span class="s2">.</span><span class="s1">route</span><span class="s2">) {</span>
+            <span class="s1">OtpScreen</span><span class="s2">(</span>
+                <span class="s1">onVerifySuccess </span><span class="s2">= {</span>
+                    <span class="s1">navController</span><span class="s2">.</span><span class="s1">navigate</span><span class="s2">(</span><span class="s1">Screen</span><span class="s2">.</span><span class="s1">Home</span><span class="s2">.</span><span class="s1">route</span><span class="s2">) {</span>
+                        <span class="s1">popUpTo</span><span class="s2">(</span><span class="s1">Screen</span><span class="s2">.</span><span class="s1">Login</span><span class="s2">.</span><span class="s1">route</span><span class="s2">) {</span>
+                            <span class="s1">inclusive </span><span class="s2">= </span><span class="s0">true</span>
+                        <span class="s2">}</span>
+                    <span class="s2">}</span>
+                <span class="s2">}</span>
+            <span class="s2">)</span>
+        <span class="s2">}</span>
+
+        <span class="s1">composable</span><span class="s2">(</span><span class="s1">Screen</span><span class="s2">.</span><span class="s1">Home</span><span class="s2">.</span><span class="s1">route</span><span class="s2">) {</span>
+
+            <span class="s1">HomeScreen</span><span class="s2">(</span>
+
+                <span class="s1">onCategoryClick </span><span class="s2">= { </span><span class="s1">category </span><span class="s2">-&gt;</span>
+
+                    <span class="s1">navController</span><span class="s2">.</span><span class="s1">navigate</span><span class="s2">(</span>
+                        <span class="s1">Screen</span><span class="s2">.</span><span class="s1">Product</span><span class="s2">.</span><span class="s1">createRoute</span><span class="s2">(</span><span class="s1">category</span><span class="s2">.</span><span class="s1">category</span><span class="s2">.</span><span class="s1">name</span><span class="s2">)</span>
+                    <span class="s2">)</span>
+
+                <span class="s2">},</span>
+
+                <span class="s1">onProductClick </span><span class="s2">= {</span>
+                    <span class="s3">// Hozircha bo'sh qoldiramiz</span>
+                <span class="s2">}</span>
+
+            <span class="s2">)</span>
+
+        <span class="s2">}</span>
+
+        <span class="s1">composable</span><span class="s2">(</span>
+            <span class="s1">route </span><span class="s2">= </span><span class="s1">Screen</span><span class="s2">.</span><span class="s1">Product</span><span class="s2">.</span><span class="s1">route</span><span class="s2">,</span>
+            <span class="s1">arguments </span><span class="s2">= </span><span class="s1">listOf</span><span class="s2">(</span>
+                <span class="s1">navArgument</span><span class="s2">(</span><span class="s4">&quot;category&quot;</span><span class="s2">) {</span>
+                    <span class="s1">type </span><span class="s2">= </span><span class="s1">NavType</span><span class="s2">.</span><span class="s1">StringType</span>
+                <span class="s2">}</span>
+            <span class="s2">)</span>
+        <span class="s2">) {</span>
+
+            <span class="s1">ProductRoute</span><span class="s2">(</span>
+
+                <span class="s1">onProductClick </span><span class="s2">= {</span>
+                    <span class="s3">// ProductDetail ni keyingi qadamda ulaymiz</span>
+                <span class="s2">}</span>
+
+            <span class="s2">)</span>
+
+        <span class="s2">}</span>
+
+    <span class="s2">}</span>
+
+<span class="s2">}</span></pre>
+</body>
+</html>
