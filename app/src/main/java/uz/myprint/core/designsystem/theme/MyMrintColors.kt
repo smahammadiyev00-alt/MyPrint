@@ -5,8 +5,8 @@ import androidx.compose.ui.graphics.Color
 object MyPrintColors {
 
     // Brand
-    val Primary = Color(0xFF246BFD)
-    val PrimaryDark = Color(0xFF1858D8)
+    val Primary = Color(0xFF7B4DFF)
+    val PrimaryDark = Color(0xFF6039E0)
     val Secondary = Color(0xFF7B4DFF)
 
     // Background

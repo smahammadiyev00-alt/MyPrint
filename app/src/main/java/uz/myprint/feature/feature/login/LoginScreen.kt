@@ -32,7 +32,7 @@ import uz.myprint.R
 
 @Composable
 fun LoginScreen(
-    onContinueClick: () -> Unit
+    onContinueClick: (String) -> Unit
 ) {
 
     var phone by remember {
@@ -101,7 +101,7 @@ fun LoginScreen(
 
         Button(
             onClick = {
-                onContinueClick()
+                onContinueClick(phone)
             },
             modifier = Modifier
                 .fillMaxWidth()

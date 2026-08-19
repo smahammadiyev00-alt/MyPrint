@@ -18,32 +18,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import uz.myprint.R
-import uz.myprint.feature.feature.product.data.dummy.ProductDummyData
-import uz.myprint.feature.feature.product.domain.model.Product
-import uz.myprint.feature.feature.product.domain.model.ProductCategory
-
-private fun productImage(product: Product): Int =
-    when (product.category) {
-        ProductCategory.BUSINESS_CARD -> R.drawable.product_vizitka
-        ProductCategory.BANNER -> R.drawable.product_banner
-        ProductCategory.T_SHIRT -> R.drawable.product_futbolka
-        ProductCategory.FLYER -> R.drawable.product_flaer
-        ProductCategory.BOOKLET -> R.drawable.product_buklet
-        ProductCategory.STICKER -> R.drawable.product_sticker
-        ProductCategory.ROLL_UP -> R.drawable.product_rollup
-        else -> R.drawable.product_packaging
-    }
+import uz.myprint.feature.feature.promotion.data.sampleSpecialOffers
 
 @Composable
-fun PopularSection(
-    onProductClick: (Product) -> Unit = {},
-    onSeeAllClick: () -> Unit = {}
+fun SpecialOfferSection(
+    onSeeAllClick: () -> Unit = {},
+    onOfferClick: (String) -> Unit = {}
 ) {
 
-    val products = ProductDummyData.products
+    val offers = sampleSpecialOffers
 
-    Column {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
 
         Row(
             modifier = Modifier
@@ -54,7 +41,7 @@ fun PopularSection(
         ) {
 
             Text(
-                text = "Dizayner xizmati",
+                text = "🔥 Maxsus takliflar",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -64,34 +51,29 @@ fun PopularSection(
             ) {
                 Text("Barchasi")
             }
-
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(
+            modifier = Modifier.height(12.dp)
+        )
 
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            items(products) { product ->
+            items(offers) { offer ->
 
-                ProductCard(
-                    image = productImage(product),
-                    title = product.name,
-                    description = product.description,
+                SpecialOfferCard(
+                    title = offer.title,
+                    discount = offer.discount,
+                    description = offer.description,
+                    image = offer.imageRes,
                     onClick = {
-                        onProductClick(product)
-                    },
-                    onAiClick = {},
-                    onStudioClick = {},
-                    onLocationClick = {}
+                        onOfferClick(offer.title)
+                    }
                 )
-
             }
-
         }
-
     }
-
 }

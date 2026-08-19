@@ -14,8 +14,10 @@ import androidx.navigation.navArgument
 import uz.myprint.feature.design.presentation.DesignScreen
 import uz.myprint.feature.feature.SplashScreen.SplashScreen
 import uz.myprint.feature.feature.home.HomeScreen
+import uz.myprint.feature.feature.printshop.presentation.route.PrintShopSelectionRoute
 import uz.myprint.feature.feature.product.detail.ProductDetailRoute
 import uz.myprint.feature.feature.product.presentation.route.ProductRoute
+import uz.myprint.feature.feature.promotion.presentation.SpecialOffersScreen
 import uz.myprint.feature.login.LoginScreen
 import uz.myprint.feature.otp.OtpScreen
 
@@ -85,26 +87,6 @@ fun AppNavHost() {
             modifier = Modifier.padding(innerPadding)
         ) {
 
-            composable(
-                route = Screen.ProductDetail.route,
-                arguments = listOf(
-                    navArgument("productId") {
-                        type = NavType.StringType
-                    }
-                )
-            ) { backStackEntry ->
-
-                val productId =
-                    backStackEntry.arguments?.getString("productId") ?: ""
-
-                ProductDetailRoute(
-                    productId = productId,
-                    onBackClick = {
-                        navController.popBackStack()
-                    }
-                )
-            }
-
             composable(Screen.Splash.route) {
 
                 SplashScreen(
@@ -120,27 +102,33 @@ fun AppNavHost() {
                 )
             }
 
-            composable(Screen.Design.route) {
-
-                DesignScreen()
-            }
-
             composable(Screen.Login.route) {
 
                 LoginScreen(
-                    onContinueClick = {
-                        navController.navigate(Screen.Otp.route)
+                    onContinueClick = { phone ->
+                        navController.navigate(
+                            Screen.Otp.createRoute(phone)
+                        )
                     }
                 )
             }
 
-            composable(Screen.Otp.route) {
+            composable(
+                route = Screen.Otp.route,
+                arguments = listOf(
+                    navArgument("phone") {
+                        type = NavType.StringType
+                    }
+                )
+            ) { backStackEntry ->
+
+                val phone =
+                    backStackEntry.arguments?.getString("phone").orEmpty()
 
                 OtpScreen(
+                    phone = phone,
                     onVerifySuccess = {
-
                         navController.navigate(Screen.Home.route) {
-
                             popUpTo(Screen.Login.route) {
                                 inclusive = true
                             }
@@ -164,6 +152,28 @@ fun AppNavHost() {
 
                     onProductClick = {
                         // Hozircha bo'sh
+                    },
+
+                    onSpecialOffersClick = {
+                        navController.navigate(Screen.SpecialOffers.route)
+                    },
+
+                    onOfferClick = {
+                        // Keyingi bosqichda SpecialOfferDetail ga o'tamiz
+                    }
+                )
+            }
+
+            composable(Screen.Design.route) {
+
+                DesignScreen()
+            }
+
+            composable(Screen.SpecialOffers.route) {
+
+                SpecialOffersScreen(
+                    onBackClick = {
+                        navController.popBackStack()
                     }
                 )
             }
@@ -178,18 +188,98 @@ fun AppNavHost() {
             ) { backStackEntry ->
 
                 val category =
-                    backStackEntry.arguments?.getString("category")
-                        ?: "ALL"
+                    backStackEntry.arguments?.getString("category") ?: "ALL"
 
-                ProductRoute(
+                if (category == "ALL") {
 
-                    category = category,
+                    // "Barchasi" — hamma mahsulotlar ro'yxati
+                    ProductRoute(
+                        category = category,
+                        onProductClick = { productId ->
+                            navController.navigate(
+                                Screen.ProductDetail.createRoute(productId)
+                            )
+                        }
+                    )
 
-                    onProductClick = { productId ->
+                } else {
 
+                    // Aniq kategoriya — ro'yxat ekrani o'tkazib yuboriladi
+                    ProductDetailRoute(
+                        category = category,
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                        onOrderClick = { pid, mid, ptid, sid, qty ->
+                            navController.navigate(
+                                Screen.PrintShopSelection.createRoute(
+                                    productId = pid,
+                                    materialId = mid,
+                                    printTypeId = ptid,
+                                    sizeId = sid,
+                                    quantity = qty
+                                )
+                            )
+                        }
+                    )
+                }
+            }
+
+            composable(
+                route = Screen.ProductDetail.route,
+                arguments = listOf(
+                    navArgument("productId") {
+                        type = NavType.StringType
+                    }
+                )
+            ) { backStackEntry ->
+
+                val productId =
+                    backStackEntry.arguments?.getString("productId") ?: ""
+
+                ProductDetailRoute(
+                    productId = productId,
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+                    onOrderClick = { pid, mid, ptid, sid, qty ->
                         navController.navigate(
-                            Screen.ProductDetail.createRoute(productId)
+                            Screen.PrintShopSelection.createRoute(
+                                productId = pid,
+                                materialId = mid,
+                                printTypeId = ptid,
+                                sizeId = sid,
+                                quantity = qty
+                            )
                         )
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.PrintShopSelection.route,
+                arguments = listOf(
+                    navArgument("productId") { type = NavType.StringType },
+                    navArgument("materialId") { type = NavType.StringType },
+                    navArgument("printTypeId") { type = NavType.StringType },
+                    navArgument("sizeId") { type = NavType.StringType },
+                    navArgument("quantity") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+
+                val args = backStackEntry.arguments
+
+                PrintShopSelectionRoute(
+                    productId = args?.getString("productId").orEmpty(),
+                    materialId = args?.getString("materialId").orEmpty(),
+                    printTypeId = args?.getString("printTypeId").orEmpty(),
+                    sizeId = args?.getString("sizeId").orEmpty(),
+                    quantity = args?.getInt("quantity") ?: 1,
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+                    onContinue = {
+                        // Keyingi bosqich: savat yoki buyurtma tasdiqlash
                     }
                 )
             }

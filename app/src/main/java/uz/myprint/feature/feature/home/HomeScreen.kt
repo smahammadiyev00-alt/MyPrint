@@ -18,9 +18,9 @@ import uz.myprint.feature.feature.home.components.CategoryItem
 import uz.myprint.feature.feature.home.components.HomeCategorySection
 import uz.myprint.feature.feature.home.components.HomeHeader
 import uz.myprint.feature.feature.home.components.HomeHeroSection
-import uz.myprint.feature.feature.home.components.HomePopularSection
 import uz.myprint.feature.feature.home.components.HomeProjectSection
 import uz.myprint.feature.feature.home.components.HomeSearchSection
+import uz.myprint.feature.feature.home.components.SpecialOfferSection
 import uz.myprint.feature.feature.product.domain.model.Product
 import uz.myprint.feature.feature.promotion.PromotionSection
 import uz.myprint.feature.feature.promotion.data.samplePartners
@@ -32,7 +32,11 @@ fun HomeScreen(
 
     onProductClick: (Product) -> Unit = {},
 
-    onPortfolioClick: (PortfolioItem) -> Unit = {}
+    onPortfolioClick: (PortfolioItem) -> Unit = {},
+
+    onSpecialOffersClick: () -> Unit = {},
+
+    onOfferClick: (String) -> Unit = {}
 
 ) {
 
@@ -54,51 +58,67 @@ fun HomeScreen(
 
                 HomeHeader()
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(
+                    modifier = Modifier.height(4.dp)
+                )
 
                 HomeSearchSection()
-
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
 
             HomeHeroSection()
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(
+                modifier = Modifier.height(12.dp)
+            )
 
             HomeCategorySection(
                 onCategoryClick = onCategoryClick
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(
+                modifier = Modifier.height(20.dp)
+            )
 
             PromotionSection(
                 partners = samplePartners
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(
+                modifier = Modifier.height(20.dp)
+            )
 
             HomeProjectSection()
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(
+                modifier = Modifier.height(24.dp)
+            )
 
             DesignerSection(
                 onSeeAllClick = {
-                    // Keyin navigation qo'shamiz
+                    // Keyingi bosqichda Designer navigation qo‘shamiz
                 },
                 onPortfolioClick = onPortfolioClick
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            HomePopularSection(
-                onProductClick = onProductClick
+            Spacer(
+                modifier = Modifier.height(24.dp)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            SpecialOfferSection(
+                onSeeAllClick = onSpecialOffersClick,
 
+                onOfferClick = { offerTitle ->
+                    onOfferClick(offerTitle)
+                }
+            )
+
+            Spacer(
+                modifier = Modifier.height(24.dp)
+            )
         }
-
     }
-
 }

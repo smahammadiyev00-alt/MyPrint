@@ -6,9 +6,12 @@ sealed class Screen(val route: String) {
 
     data object Login : Screen("login")
 
-    data object Otp : Screen("otp")
+    data object Otp : Screen("otp/{phone}") {
+        fun createRoute(phone: String) = "otp/$phone"
+    }
 
     data object Home : Screen("home")
+
 
     data object Orders : Screen("orders")
 
@@ -29,6 +32,22 @@ sealed class Screen(val route: String) {
 
         fun createRoute(productId: String): String {
             return "product_detail/$productId"
+        }
+    }
+
+    data object SpecialOffers : Screen("special_offers")
+    data object PrintShopSelection : Screen(
+        "printshop/{productId}/{materialId}/{printTypeId}/{sizeId}/{quantity}"
+    ) {
+
+        fun createRoute(
+            productId: String,
+            materialId: String,
+            printTypeId: String,
+            sizeId: String,
+            quantity: Int
+        ): String {
+            return "printshop/$productId/$materialId/$printTypeId/$sizeId/$quantity"
         }
     }
 }
