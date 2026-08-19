@@ -17,7 +17,7 @@ import uz.myprint.feature.feature.printshop.domain.model.PrintShopOffer
 import uz.myprint.feature.feature.printshop.presentation.screen.PrintShopSelectionScreen
 import uz.myprint.feature.feature.printshop.presentation.viewmodel.PrintShopSelectionViewModel
 
-@Composablev
+@Composable
 fun PrintShopSelectionRoute(
 
     productId: String,
