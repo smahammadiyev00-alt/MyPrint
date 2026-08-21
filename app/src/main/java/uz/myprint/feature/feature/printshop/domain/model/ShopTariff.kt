@@ -5,18 +5,26 @@ import uz.myprint.feature.feature.product.domain.model.ProductCategory
 /**
  * Bitta poligrafiyaning bitta mahsulot turi uchun tarifi.
  *
- * Model ataylab sodda: poligrafiya faqat bazaviy narx va bir nechta
- * koeffitsient kiritadi. Material / o'lcham / bosma turi uchun qo'shimcha
- * narx mahsulot modelining o'zida (additionalPrice) turadi.
- *
  * Barcha summalar — so'm, butun son.
  */
 data class ShopTariff(
 
     val category: ProductCategory,
 
-    /** Bazaviy dona narxi (eng arzon material, standart o'lcham). */
-    val basePricePerUnit: Long,
+    /**
+     * Bazaviy narx. PER_ITEM da bir dona, PER_SQUARE_METER da bir
+     * kvadrat metr uchun. PER_LINEAR_METER da ishlatilmaydi —
+     * u yerda narx rulonga bog'liq, rolls ro'yxatiga qarang.
+     */
+    val basePricePerUnit: Long = 0L,
+
+    val pricingUnit: PricingUnit = PricingUnit.PER_ITEM,
+
+    /**
+     * Poligrafiyadagi rulonlar. Faqat PER_LINEAR_METER uchun.
+     * Dizayn sig'adigan eng arzon rulon tanlanadi.
+     */
+    val rolls: List<RollOption> = emptyList(),
 
     /** Shundan kam buyurtma qabul qilinmaydi. */
     val minQuantity: Int = 1,

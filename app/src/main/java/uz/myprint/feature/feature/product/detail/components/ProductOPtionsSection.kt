@@ -8,23 +8,45 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import uz.myprint.core.designsystem.theme.MyPrintColors
 import uz.myprint.feature.feature.product.domain.model.Product
+import uz.myprint.feature.feature.product.domain.model.ProductCategory
 import uz.myprint.feature.feature.product.domain.model.ProductMaterial
 import uz.myprint.feature.feature.product.domain.model.ProductPrintType
 import uz.myprint.feature.feature.product.domain.model.ProductSize
+import uz.myprint.feature.feature.product.domain.model.SizeUnit
+import uz.myprint.feature.feature.product.domain.model.allowsCustomSize
+import uz.myprint.feature.feature.product.domain.model.areaSquareMeters
+import uz.myprint.feature.feature.product.domain.model.customProductSize
+import uz.myprint.feature.feature.product.domain.model.isCustom
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -57,8 +79,6 @@ fun ProductOptionsSection(
                 product.materials.forEach { material ->
 
                     OptionChip(
-                        // Zichlik bilan birga: "Art Paper 300g" va "Art Paper 350g".
-                        // Aks holda ikkalasi bir xil ko'rinadi.
                         label = listOfNotNull(material.name, material.thickness)
                             .joinToString(" "),
                         isSelected = material.id == selectedMaterial?.id,
@@ -97,6 +117,14 @@ fun ProductOptionsSection(
 
             GroupTitle("O'lcham")
 
+            val allowsCustom = product.category.allowsCustomSize
+
+            val customUnit = customUnitFor(product.category)
+
+            var customOpen by remember {
+                mutableStateOf(selectedSize?.isCustom == true)
+            }
+
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -106,13 +134,218 @@ fun ProductOptionsSection(
                 product.sizes.forEach { size ->
 
                     OptionChip(
-                        // title allaqachon "90 × 50 mm" — takrorlash shart emas.
                         label = size.title,
                         isSelected = size.id == selectedSize?.id,
-                        onClick = { onSizeSelected(size) }
+                        onClick = {
+                            customOpen = false
+                            onSizeSelected(size)
+                        }
+                    )
+                }
+
+                if (allowsCustom) {
+
+                    OptionChip(
+                        label = "Boshqa o'lcham",
+                        isSelected = customOpen || selectedSize?.isCustom == true,
+                        onClick = { customOpen = true }
                     )
                 }
             }
+
+            if (allowsCustom && customOpen) {
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                CustomSizeInput(
+                    unit = customUnit,
+                    selectedSize = selectedSize,
+                    onSizeSelected = onSizeSelected
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Banner metrda o'lchanadi (pogon metr), sticker esa santimetrda.
+ */
+private fun customUnitFor(category: ProductCategory): SizeUnit =
+    when (category) {
+
+        ProductCategory.BANNER,
+        ProductCategory.ROLL_UP -> SizeUnit.M
+
+        else -> SizeUnit.CM
+    }
+
+@Composable
+private fun CustomSizeInput(
+    unit: SizeUnit,
+    selectedSize: ProductSize?,
+    onSizeSelected: (ProductSize) -> Unit
+) {
+
+    val isSameUnit = selectedSize?.isCustom == true && selectedSize.unit == unit
+
+    var widthText by remember(unit) {
+        mutableStateOf(if (isSameUnit) selectedSize.width.clean() else "")
+    }
+
+    var heightText by remember(unit) {
+        mutableStateOf(if (isSameUnit) selectedSize.height.clean() else "")
+    }
+
+    fun push() {
+
+        val w = widthText.toFloatOrNull()
+        val h = heightText.toFloatOrNull()
+
+        if (w != null && h != null && w > 0f && h > 0f) {
+            onSizeSelected(customProductSize(w, h, unit))
+        }
+    }
+
+    val unitLabel = when (unit) {
+        SizeUnit.M -> "m"
+        SizeUnit.CM -> "cm"
+        SizeUnit.MM -> "mm"
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MyPrintColors.Background)
+            .padding(14.dp)
+    ) {
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+
+            DimensionField(
+                value = widthText,
+                label = "Eni",
+                allowDecimal = unit == SizeUnit.M,
+                onValueChange = {
+                    widthText = it
+                    push()
+                }
+            )
+
+            Text(
+                text = "×",
+                modifier = Modifier.padding(horizontal = 12.dp),
+                color = MyPrintColors.TextSecondary,
+                fontWeight = FontWeight.Bold
+            )
+
+            DimensionField(
+                value = heightText,
+                label = "Bo'yi",
+                allowDecimal = unit == SizeUnit.M,
+                onValueChange = {
+                    heightText = it
+                    push()
+                }
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Text(
+                text = unitLabel,
+                color = MyPrintColors.TextSecondary
+            )
+        }
+
+        val area = selectedSize
+            ?.takeIf { it.isCustom }
+            ?.areaSquareMeters
+
+        if (area != null) {
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = "Maydon: %.2f m²".format(area),
+                fontSize = 13.sp,
+                color = MyPrintColors.TextSecondary
+            )
+        }
+    }
+}
+
+@Composable
+private fun DimensionField(
+    value: String,
+    label: String,
+    allowDecimal: Boolean,
+    onValueChange: (String) -> Unit
+) {
+
+    val keyboard = LocalSoftwareKeyboardController.current
+
+    Column {
+
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = MyPrintColors.TextSecondary
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Box(
+            modifier = Modifier
+                .width(96.dp)
+                .height(44.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(MyPrintColors.Surface)
+                .border(1.dp, MyPrintColors.Border, RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+
+            BasicTextField(
+                value = value,
+                onValueChange = { input ->
+
+                    val filtered = if (allowDecimal) {
+
+                        // Bitta nuqtaga ruxsat: "1.5"
+                        input
+                            .filter { it.isDigit() || it == '.' }
+                            .let { text ->
+                                val firstDot = text.indexOf('.')
+                                if (firstDot == -1) text
+                                else text.substring(0, firstDot + 1) +
+                                        text.substring(firstDot + 1).filter { it.isDigit() }
+                            }
+                            .take(6)
+
+                    } else {
+                        input.filter { it.isDigit() }.take(5)
+                    }
+
+                    onValueChange(filtered)
+                },
+                singleLine = true,
+                textStyle = TextStyle(
+                    textAlign = TextAlign.Center,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MyPrintColors.TextPrimary
+                ),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = if (allowDecimal) KeyboardType.Decimal
+                    else KeyboardType.Number,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { keyboard?.hide() }
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+            )
         }
     }
 }
@@ -162,3 +395,8 @@ private fun OptionChip(
         )
     }
 }
+
+/** 3.0 -> "3",  1.5 -> "1.5" */
+private fun Float.clean(): String =
+    if (this == this.toInt().toFloat()) this.toInt().toString()
+    else this.toString()

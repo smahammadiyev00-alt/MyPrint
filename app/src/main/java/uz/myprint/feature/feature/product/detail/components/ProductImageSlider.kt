@@ -44,6 +44,7 @@ private fun Product.imageRes(): Int {
         ProductCategory.FLYER -> R.drawable.product_flaer
         ProductCategory.BOOKLET -> R.drawable.product_buklet
         ProductCategory.ROLL_UP -> R.drawable.product_rollup
+        ProductCategory.X_BANNER -> R.drawable.product_rollup
         ProductCategory.CALENDAR -> R.drawable.product_packaging
         ProductCategory.PACKAGING -> R.drawable.product_packaging
         ProductCategory.LABEL -> R.drawable.product_packaging

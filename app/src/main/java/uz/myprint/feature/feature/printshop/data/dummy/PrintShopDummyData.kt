@@ -7,6 +7,8 @@ import uz.myprint.feature.feature.printshop.domain.model.WorkingHours
 import uz.myprint.feature.feature.product.domain.model.ProductCategory
 import uz.myprint.feature.feature.printshop.domain.model.PrintService
 import uz.myprint.feature.feature.printshop.domain.model.ShopBadge
+import uz.myprint.feature.feature.printshop.domain.model.PricingUnit
+import uz.myprint.feature.feature.printshop.domain.model.RollOption
 /**
  * Vaqtinchalik ma'lumot. Backend ulanganda faqat data source almashadi,
  * UI va PriceCalculator o'zgarmaydi.
@@ -109,14 +111,19 @@ object PrintShopDummyData {
                     freeDeliveryFrom = 250_000
                 ),
                 ShopTariff(
-                    category = ProductCategory.T_SHIRT,
-                    basePricePerUnit = 95_000,
+                    category = ProductCategory.BANNER,
+                    pricingUnit = PricingUnit.PER_LINEAR_METER,
+                    rolls = listOf(
+                        RollOption(widthMeters = 1.0f, pricePerLinearMeter = 35_000),
+                        RollOption(widthMeters = 1.2f, pricePerLinearMeter = 42_000),
+                        RollOption(widthMeters = 1.5f, pricePerLinearMeter = 52_000),
+                        RollOption(widthMeters = 1.7f, pricePerLinearMeter = 59_000),
+                        RollOption(widthMeters = 3.0f, pricePerLinearMeter = 105_000)
+                    ),
                     minQuantity = 1,
                     productionDays = 2,
-                    quantityTiers = listOf(
-                        QuantityTier(fromQuantity = 10, discountPercent = 12)
-                    ),
-                    deliveryPrice = 25_000
+                    rushAvailable = true,
+                    deliveryPrice = 30_000
                 )
             )
         ),

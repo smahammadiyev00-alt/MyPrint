@@ -80,6 +80,7 @@ object SizeDummyData {
     // ROLL UP
     // ==========================================================
 
+
     val rollUp85x200 = ProductSize(
         id = "rollup_85x200",
         title = "85 × 200 cm",
@@ -138,5 +139,21 @@ object SizeDummyData {
         height = 95f,
         unit = SizeUnit.MM,
         isDefault = true
+    )
+    val xBanner60x160 = ProductSize(
+        id = "xbanner_60x160",
+        title = "60 × 160 cm",
+        width = 60f,
+        height = 160f,
+        unit = SizeUnit.CM,
+        isDefault = true
+    )
+
+    val xBanner80x180 = ProductSize(
+        id = "xbanner_80x180",
+        title = "80 × 180 cm",
+        width = 80f,
+        height = 180f,
+        unit = SizeUnit.CM
     )
 }

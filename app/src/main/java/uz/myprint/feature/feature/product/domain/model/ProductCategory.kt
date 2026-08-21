@@ -19,6 +19,7 @@ enum class ProductCategory {
     BOOKLET,
 
     ROLL_UP,
+    X_BANNER,
 
     CALENDAR,
 

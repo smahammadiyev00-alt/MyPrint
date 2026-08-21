@@ -35,26 +35,25 @@ object MaterialDummyData {
     )
 
     // Banner
-    val banner440 = ProductMaterial(
-        id = "banner440",
+    val banner = ProductMaterial(
+        id = "banner",
         name = "Banner",
-        thickness = "440g",
-        description = "Standard outdoor banner",
+        description = "Ichki va tashqi reklama uchun standart banner matosi.",
         isDefault = true
     )
 
-    val banner510 = ProductMaterial(
-        id = "banner510",
-        name = "Banner",
-        thickness = "510g",
-        description = "Heavy duty banner"
+    val bekPrint = ProductMaterial(
+        id = "bek_print",
+        name = "Bek print",
+        description = "Roll Up uchun zich, orqasi qoraytirilgan material.",
+        additionalPrice = 12_000
     )
 
-    val blockout = ProductMaterial(
-        id = "blockout",
-        name = "Blockout Banner",
-        thickness = "610g",
-        description = "Double sided banner"
+    val orakalTransparent = ProductMaterial(
+        id = "orakal_transparent",
+        name = "Shaffof orakal",
+        description = "Oyna va vitrina uchun shaffof yopishqoq plyonka.",
+        additionalPrice = 26_000
     )
 
     // T-Shirt
@@ -72,5 +71,11 @@ object MaterialDummyData {
         thickness = "100%",
         description = "Sports fabric"
     )
-
+    // Mug
+    val ceramic = ProductMaterial(
+        id = "ceramic",
+        name = "Keramika",
+        description = "Standart oq keramika krujka.",
+        isDefault = true
+    )
 }

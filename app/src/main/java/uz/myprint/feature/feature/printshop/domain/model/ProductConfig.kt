@@ -4,6 +4,7 @@ import uz.myprint.feature.feature.product.domain.model.ProductCategory
 import uz.myprint.feature.feature.product.domain.model.ProductMaterial
 import uz.myprint.feature.feature.product.domain.model.ProductPrintType
 import uz.myprint.feature.feature.product.domain.model.ProductSize
+import uz.myprint.feature.feature.product.domain.model.parseCustomSizeId
 
 /**
  * Mijoz tanlagan konfiguratsiya.
@@ -13,13 +14,21 @@ import uz.myprint.feature.feature.product.domain.model.ProductSize
  * hisoblash mantiqi ikkala holat uchun bir xil bo'ladi.
  */
 data class ProductConfig(
+
     val productId: String,
+
     val category: ProductCategory,
+
     val material: ProductMaterial? = null,
+
     val printType: ProductPrintType? = null,
+
     val lines: List<ConfigLine> = emptyList(),
+
     val isRush: Boolean = false,
+
     val needsDelivery: Boolean = false
+
 ) {
 
     /** Barcha o'lchamlar bo'yicha jami. */
@@ -42,6 +51,7 @@ data class ProductConfig(
 
         /**
          * Navigatsiya argumenti uchun: "m:10,l:15,xl:5".
+         * Erkin o'lcham: "custom-800x1200:1".
          * Nol miqdorli qatorlar tashlab yuboriladi.
          */
         fun encodeLines(lines: List<ConfigLine>): String =
@@ -53,7 +63,9 @@ data class ProductConfig(
                 .ifBlank { ":0" }
 
         /**
-         * "m:10,l:15,xl:5" -> qatorlar. O'lchamlar mahsulotdan topiladi.
+         * "m:10,l:15,xl:5" -> qatorlar.
+         * Katalogdagi o'lchamlar mahsulotdan topiladi,
+         * erkin o'lchamlar id'ning o'zidan tiklanadi.
          */
         fun decodeLines(
             encoded: String,
@@ -71,8 +83,13 @@ data class ProductConfig(
 
                     if (quantity <= 0) return@mapNotNull null
 
+                    val sizeId = pieces[0]
+
+                    val size = availableSizes.firstOrNull { it.id == sizeId }
+                        ?: parseCustomSizeId(sizeId)
+
                     ConfigLine(
-                        size = availableSizes.firstOrNull { it.id == pieces[0] },
+                        size = size,
                         quantity = quantity
                     )
                 }

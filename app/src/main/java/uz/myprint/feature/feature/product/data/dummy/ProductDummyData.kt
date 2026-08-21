@@ -59,16 +59,13 @@ object ProductDummyData {
             id = "banner",
             name = "Banner",
             description = "Ichki va tashqi reklama bannerlari.",
-
             category = ProductCategory.BANNER,
 
             thumbnail = "",
             gallery = emptyList(),
 
             materials = listOf(
-                MaterialDummyData.banner440,
-                MaterialDummyData.banner510,
-                MaterialDummyData.blockout
+                MaterialDummyData.banner,
             ),
 
             printTypes = listOf(
@@ -100,9 +97,7 @@ object ProductDummyData {
         Product(
             id = "tshirt",
             name = "Futbolka",
-
             description = "DTF, Sublimation va Silk Screen bosma.",
-
             category = ProductCategory.T_SHIRT,
 
             thumbnail = "",
@@ -137,133 +132,148 @@ object ProductDummyData {
             isPopular = true,
             isFeatured = false
         ),
-Product(
-id = "sticker",
-name = "Sticker",
-description = "Vinyl va qog'oz stikerlar.",
 
-category = ProductCategory.STICKER,
+        // ===========================
+        // STICKER
+        // ===========================
 
-thumbnail = "",
-gallery = emptyList(),
+        Product(
+            id = "sticker",
+            name = "Sticker",
+            description = "Vinyl va qog'oz stikerlar.",
+            category = ProductCategory.STICKER,
 
-materials = listOf(
-MaterialDummyData.laminated,
-MaterialDummyData.kraft
-),
+            thumbnail = "",
+            gallery = emptyList(),
 
-printTypes = listOf(
-PrintTypeDummyData.singleSide,
-PrintTypeDummyData.uvPrint
-),
+            materials = listOf(
+                MaterialDummyData.orakalTransparent,
+                MaterialDummyData.laminated
+            ),
 
-colorModes = listOf(
-ColorModeDummyData.cmyk
-),
+            printTypes = listOf(
+                PrintTypeDummyData.singleSide,
+                PrintTypeDummyData.uvPrint
+            ),
 
-sizes = listOf(
-SizeDummyData.a6,
-SizeDummyData.a5
-),
+            colorModes = listOf(
+                ColorModeDummyData.cmyk
+            ),
 
-studioSupported = true,
-aiSupported = true,
+            sizes = listOf(
+                SizeDummyData.a6,
+                SizeDummyData.a5
+            ),
 
-isAvailable = true,
-isPopular = true,
-isFeatured = false
-),
-Product(
-id = "flyer",
-name = "Flyer",
-description = "Reklama flyer va varaqalari.",
+            studioSupported = true,
+            aiSupported = true,
 
-category = ProductCategory.FLYER,
+            isAvailable = true,
+            isPopular = true,
+            isFeatured = false
+        ),
 
-thumbnail = "",
-gallery = emptyList(),
+        // ===========================
+        // FLYER
+        // ===========================
 
-materials = listOf(
-MaterialDummyData.art300,
-MaterialDummyData.art350
-),
+        Product(
+            id = "flyer",
+            name = "Flyer",
+            description = "Reklama flyer va varaqalari.",
+            category = ProductCategory.FLYER,
 
-printTypes = listOf(
-PrintTypeDummyData.singleSide,
-PrintTypeDummyData.doubleSide
-),
+            thumbnail = "",
+            gallery = emptyList(),
 
-colorModes = listOf(
-ColorModeDummyData.cmyk
-),
+            materials = listOf(
+                MaterialDummyData.art300,
+                MaterialDummyData.art350
+            ),
 
-sizes = listOf(
-SizeDummyData.a6,
-SizeDummyData.a5,
-SizeDummyData.a4
-),
+            printTypes = listOf(
+                PrintTypeDummyData.singleSide,
+                PrintTypeDummyData.doubleSide
+            ),
 
-studioSupported = true,
-aiSupported = true,
+            colorModes = listOf(
+                ColorModeDummyData.cmyk
+            ),
 
-isAvailable = true,
-isPopular = true,
-isFeatured = false
-),
-Product(
-id = "booklet",
-name = "Buklet",
-description = "Ko'p sahifali reklama bukletlari.",
+            sizes = listOf(
+                SizeDummyData.a6,
+                SizeDummyData.a5,
+                SizeDummyData.a4
+            ),
 
-category = ProductCategory.BOOKLET,
+            studioSupported = true,
+            aiSupported = true,
 
-thumbnail = "",
-gallery = emptyList(),
+            isAvailable = true,
+            isPopular = true,
+            isFeatured = false
+        ),
 
-materials = listOf(
-MaterialDummyData.art300,
-MaterialDummyData.laminated
-),
+        // ===========================
+        // BOOKLET
+        // ===========================
 
-printTypes = listOf(
-PrintTypeDummyData.doubleSide,
-PrintTypeDummyData.laminate
-),
+        Product(
+            id = "booklet",
+            name = "Buklet",
+            description = "Ko'p sahifali reklama bukletlari.",
+            category = ProductCategory.BOOKLET,
 
-colorModes = listOf(
-ColorModeDummyData.cmyk
-),
+            thumbnail = "",
+            gallery = emptyList(),
 
-sizes = listOf(
-SizeDummyData.a5,
-SizeDummyData.a4
-),
+            materials = listOf(
+                MaterialDummyData.art300,
+                MaterialDummyData.laminated
+            ),
 
-studioSupported = true,
-aiSupported = true,
+            printTypes = listOf(
+                PrintTypeDummyData.doubleSide,
+                PrintTypeDummyData.laminate
+            ),
 
-isAvailable = true,
-isPopular = false,
-isFeatured = false
-),
+            colorModes = listOf(
+                ColorModeDummyData.cmyk
+            ),
+
+            sizes = listOf(
+                SizeDummyData.a5,
+                SizeDummyData.a4
+            ),
+
+            studioSupported = true,
+            aiSupported = true,
+
+            isAvailable = true,
+            isPopular = false,
+            isFeatured = false
+        ),
+
+        // ===========================
+        // ROLL UP
+        // ===========================
+
         Product(
             id = "rollup",
             name = "Roll Up",
             description = "Ko'rgazma va reklama uchun Roll Up banner.",
-
             category = ProductCategory.ROLL_UP,
 
             thumbnail = "",
             gallery = emptyList(),
 
             materials = listOf(
-                MaterialDummyData.banner440,
-                MaterialDummyData.blockout
+                MaterialDummyData.banner,
+                MaterialDummyData.bekPrint
             ),
 
             printTypes = listOf(
-                PrintTypeDummyData.ecoSolvent,
-                PrintTypeDummyData.largeUv
+                PrintTypeDummyData.ecoSolvent
             ),
 
             colorModes = listOf(
@@ -280,19 +290,57 @@ isFeatured = false
             isAvailable = true,
             isPopular = true,
             isFeatured = true
+        )
+        ,
+
+        // ===========================
+        // MUG
+        // ===========================
+        Product(
+            id = "x_banner",
+            name = "X-banner",
+            description = "Ko'chma X shaklidagi reklama standi.",
+            category = ProductCategory.X_BANNER,
+
+            thumbnail = "",
+            gallery = emptyList(),
+
+            materials = listOf(
+                MaterialDummyData.banner,
+                MaterialDummyData.bekPrint
+            ),
+
+            printTypes = listOf(
+                PrintTypeDummyData.ecoSolvent
+            ),
+
+            colorModes = listOf(
+                ColorModeDummyData.cmyk
+            ),
+
+            sizes = listOf(
+                SizeDummyData.xBanner60x160,
+                SizeDummyData.xBanner80x180
+            ),
+
+            studioSupported = true,
+            aiSupported = true,
+
+            isAvailable = true,
+            isPopular = true,
+            isFeatured = false
         ),
         Product(
             id = "mug",
             name = "Mug",
             description = "Keramika krujkaga sublimatsiya bosma.",
-
             category = ProductCategory.MUG,
 
             thumbnail = "",
             gallery = emptyList(),
 
             materials = listOf(
-                MaterialDummyData.cotton100
+                MaterialDummyData.ceramic
             ),
 
             printTypes = listOf(
@@ -315,4 +363,5 @@ isFeatured = false
             isFeatured = false
         )
     )
+
 }
