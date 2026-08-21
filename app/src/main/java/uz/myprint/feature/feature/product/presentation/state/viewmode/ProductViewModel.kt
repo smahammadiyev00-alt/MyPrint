@@ -9,44 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import uz.myprint.feature.feature.product.domain.usecase.GetProductByIdUseCase
 import uz.myprint.feature.feature.product.domain.usecase.GetProductsUseCase
-import uz.myprint.feature.feature.product.presentation.state.viewmode.ProductDetailEvent
 import uz.myprint.feature.feature.product.presentation.state.viewmode.ProductUiState
-
-fun onEvent(event: ProductDetailEvent) {
-
-    when (event) {
-
-        is ProductDetailEvent.MaterialSelected -> {
-
-        }
-
-        is ProductDetailEvent.PrintTypeSelected -> {
-
-        }
-
-        is ProductDetailEvent.SizeSelected -> {
-
-        }
-
-        ProductDetailEvent.IncreaseQuantity -> {
-
-        }
-
-        ProductDetailEvent.DecreaseQuantity -> {
-
-        }
-
-        ProductDetailEvent.OrderClicked -> {
-
-        }
-
-        ProductDetailEvent.AiDesignClicked -> {
-
-        }
-
-    }
-
-}
 
 class ProductViewModel(
     private val getProductsUseCase: GetProductsUseCase,

@@ -25,13 +25,14 @@ class PrintShopSelectionViewModel(
      * Navigatsiya argumentlaridan konfiguratsiyani qayta yig'adi.
      * ID'lar uzatiladi, obyektlar shu yerda mahsulotdan topiladi —
      * shunda jarayon o'ldirilsa ham holat tiklanadi.
+     *
+     * @param lines "m:10,l:15,xl:5" ko'rinishida kodlangan qatorlar.
      */
     fun load(
         productId: String,
         materialId: String,
         printTypeId: String,
-        sizeId: String,
-        quantity: Int
+        lines: String
     ) {
 
         viewModelScope.launch {
@@ -54,13 +55,17 @@ class PrintShopSelectionViewModel(
                     return@launch
                 }
 
+                val configLines = ProductConfig.decodeLines(
+                    encoded = lines,
+                    availableSizes = product.sizes
+                )
+
                 val config = ProductConfig(
                     productId = product.id,
                     category = product.category,
                     material = product.materials.firstOrNull { it.id == materialId },
                     printType = product.printTypes.firstOrNull { it.id == printTypeId },
-                    size = product.sizes.firstOrNull { it.id == sizeId },
-                    quantity = quantity,
+                    lines = configLines,
 
                     // Yetkazib berish hozircha doim so'raladi. Keyinchalik
                     // checkout ekranida foydalanuvchi o'zi tanlaydi.
@@ -79,7 +84,7 @@ class PrintShopSelectionViewModel(
                 _uiState.update {
                     it.copy(
                         productName = product.name,
-                        quantity = quantity,
+                        quantity = config.quantity,
                         offers = offers,
                         isLoading = false
                     )

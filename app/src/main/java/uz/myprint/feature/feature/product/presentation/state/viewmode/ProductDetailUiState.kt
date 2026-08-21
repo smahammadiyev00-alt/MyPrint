@@ -13,12 +13,29 @@ data class ProductDetailUiState(
 
     val selectedPrintType: ProductPrintType? = null,
 
+    /** Bitta o'lchamli mahsulotlar uchun (vizitka, banner). */
     val selectedSize: ProductSize? = null,
 
+    /** Bitta o'lchamli mahsulotlar uchun soni. */
     val quantity: Int = 1,
+
+    /**
+     * O'lcham bo'yicha taqsimot (futbolka): sizeId -> soni.
+     * Bitta o'lchamli mahsulotlarda bo'sh qoladi.
+     */
+    val sizeQuantities: Map<String, Int> = emptyMap(),
 
     val isLoading: Boolean = false,
 
     val error: String? = null
 
-)
+) {
+
+    /** Buyurtmadagi umumiy son — ikkala rejim uchun. */
+    val totalQuantity: Int
+        get() = if (sizeQuantities.isNotEmpty()) {
+            sizeQuantities.values.sum()
+        } else {
+            quantity
+        }
+}

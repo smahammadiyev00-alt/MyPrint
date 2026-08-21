@@ -7,17 +7,20 @@ import uz.myprint.feature.feature.printshop.domain.model.ProductConfig
 /**
  * Narx hisoblash.
  *
- * Bu deterministik funksiya: bir xil kirish har doim bir xil natija beradi.
+ * Deterministik funksiya: bir xil kirish har doim bir xil natija beradi.
  * Narxni hech qachon AI hisoblamaydi — mijoz to'laydigan summa
  * testlanadigan formula bo'lishi kerak.
  *
- * Formula:
- *   donaBazaviy = tarif.bazaviyNarx + material + o'lcham + bosmaTuri
- *   donaNarx    = donaBazaviy * (100 - tirajChegirmasi) / 100
- *   mahsulotlar = donaNarx * soni
+ * Har bir qator alohida hisoblanadi, chunki o'lchamning qo'shimcha narxi
+ * har xil bo'lishi mumkin (XXL futbolka S dan qimmatroq). Tirajga
+ * beriladigan chegirma esa jami songa qarab belgilanadi.
+ *
+ *   qatorDona  = tarif.bazaviy + material + bosmaTuri + o'lcham
+ *   qatorNarx  = qatorDona * (100 - chegirma) / 100 * qatorSoni
+ *   mahsulotlar = qatorlar yig'indisi
  *   shoshilinch = mahsulotlar * rushMultiplier
- *   yetkazish   = summa >= freeDeliveryFrom ? 0 : deliveryPrice
- *   jami        = mahsulotlar + yetkazish
+ *   yetkazish  = summa >= freeDeliveryFrom ? 0 : deliveryPrice
+ *   jami       = mahsulotlar + yetkazish
  */
 object PriceCalculator {
 
@@ -34,7 +37,9 @@ object PriceCalculator {
                 PriceQuote.OnRequest.Reason.NO_TARIFF
             )
 
-        if (config.quantity < tariff.minQuantity) {
+        val totalQuantity = config.quantity
+
+        if (totalQuantity < tariff.minQuantity || totalQuantity <= 0) {
             return PriceQuote.OnRequest(
                 PriceQuote.OnRequest.Reason.BELOW_MIN_QUANTITY
             )
@@ -46,13 +51,22 @@ object PriceCalculator {
             )
         }
 
-        val baseUnit = tariff.basePricePerUnit + config.optionsPricePerUnit
+        val discount = tariff.discountPercentFor(totalQuantity)
 
-        val discount = tariff.discountPercentFor(config.quantity)
+        var itemsTotal = 0L
 
-        val unitPrice = baseUnit * (100 - discount) / 100
+        config.lines.forEach { line ->
 
-        var itemsTotal = unitPrice * config.quantity
+            if (line.quantity <= 0) return@forEach
+
+            val baseUnit = tariff.basePricePerUnit +
+                    config.optionsPricePerUnit +
+                    line.sizePricePerUnit
+
+            val unitPrice = baseUnit * (100 - discount) / 100
+
+            itemsTotal += unitPrice * line.quantity
+        }
 
         if (config.isRush) {
             itemsTotal = (itemsTotal * tariff.rushMultiplier).toLong()
@@ -72,7 +86,8 @@ object PriceCalculator {
             else tariff.productionDays
 
         return PriceQuote.Available(
-            unitPrice = unitPrice,
+            // O'lchamlar aralash bo'lsa dona narxi o'rtacha bo'ladi.
+            unitPrice = itemsTotal / totalQuantity,
             itemsTotal = itemsTotal,
             deliveryPrice = deliveryPrice,
             total = itemsTotal + deliveryPrice,

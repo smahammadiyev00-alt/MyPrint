@@ -18,6 +18,12 @@ sealed interface ProductDetailEvent {
         val size: ProductSize
     ) : ProductDetailEvent
 
+    /** Futbolka kabi mahsulotlarda: bitta o'lchamning soni o'zgardi. */
+    data class SizeQuantityChanged(
+        val sizeId: String,
+        val quantity: Int
+    ) : ProductDetailEvent
+
     data object IncreaseQuantity : ProductDetailEvent
 
     data object DecreaseQuantity : ProductDetailEvent
@@ -25,5 +31,4 @@ sealed interface ProductDetailEvent {
     data object OrderClicked : ProductDetailEvent
 
     data object AiDesignClicked : ProductDetailEvent
-
 }

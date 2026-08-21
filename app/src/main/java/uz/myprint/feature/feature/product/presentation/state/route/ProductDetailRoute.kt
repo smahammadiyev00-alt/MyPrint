@@ -13,6 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import uz.myprint.core.designsystem.theme.MyPrintColors
 import uz.myprint.core.di.ProductDetailViewModelFactory
+import uz.myprint.feature.feature.printshop.domain.model.ConfigLine
+import uz.myprint.feature.feature.printshop.domain.model.ProductConfig
+import uz.myprint.feature.feature.product.domain.model.usesSizeBreakdown
 import uz.myprint.feature.feature.product.presentation.state.viewmode.ProductDetailEvent
 import uz.myprint.feature.feature.product.presentation.viewmodel.ProductDetailViewModel
 
@@ -20,8 +23,6 @@ import uz.myprint.feature.feature.product.presentation.viewmodel.ProductDetailVi
  * Ekran ikki yo'l bilan ochiladi:
  *  - productId orqali (mahsulot ro'yxatidan yoki loyihadan)
  *  - category orqali (bosh sahifadagi kategoriyadan, ro'yxatsiz)
- *
- * Ikkalasidan biri berilishi kifoya.
  */
 @Composable
 fun ProductDetailRoute(
@@ -36,13 +37,15 @@ fun ProductDetailRoute(
 
     onDesignStudioClick: () -> Unit = {},
 
+    /**
+     * lines — "m:10,l:15,xl:5" ko'rinishida kodlangan o'lcham/son juftliklari.
+     */
     onOrderClick: (
         productId: String,
         materialId: String,
         printTypeId: String,
-        sizeId: String,
-        quantity: Int
-    ) -> Unit = { _, _, _, _, _ -> }
+        lines: String
+    ) -> Unit = { _, _, _, _ -> }
 
 ) {
 
@@ -98,6 +101,7 @@ fun ProductDetailRoute(
                     selectedPrintType = uiState.selectedPrintType,
                     selectedSize = uiState.selectedSize,
                     quantity = uiState.quantity,
+                    sizeQuantities = uiState.sizeQuantities,
 
                     onMaterialSelected = {
                         viewModel.onEvent(ProductDetailEvent.MaterialSelected(it))
@@ -121,6 +125,12 @@ fun ProductDetailRoute(
                         viewModel.onEvent(ProductDetailEvent.DecreaseQuantity)
                     },
 
+                    onSizeQuantityChange = { sizeId, value ->
+                        viewModel.onEvent(
+                            ProductDetailEvent.SizeQuantityChanged(sizeId, value)
+                        )
+                    },
+
                     onBackClick = onBackClick,
 
                     onAiClick = onAiClick,
@@ -129,13 +139,36 @@ fun ProductDetailRoute(
 
                     onOrderClick = {
 
-                        onOrderClick(
-                            product.id,
-                            uiState.selectedMaterial?.id.orEmpty(),
-                            uiState.selectedPrintType?.id.orEmpty(),
-                            uiState.selectedSize?.id.orEmpty(),
-                            uiState.quantity
-                        )
+                        val lines =
+                            if (product.category.usesSizeBreakdown) {
+
+                                product.sizes.map { size ->
+                                    ConfigLine(
+                                        size = size,
+                                        quantity = uiState.sizeQuantities[size.id] ?: 0
+                                    )
+                                }
+
+                            } else {
+
+                                listOf(
+                                    ConfigLine(
+                                        size = uiState.selectedSize,
+                                        quantity = uiState.quantity
+                                    )
+                                )
+                            }
+
+                        // Hech narsa tanlanmagan bo'lsa navigatsiya qilmaymiz.
+                        if (lines.sumOf { it.quantity } > 0) {
+
+                            onOrderClick(
+                                product.id,
+                                uiState.selectedMaterial?.id.orEmpty(),
+                                uiState.selectedPrintType?.id.orEmpty(),
+                                ProductConfig.encodeLines(lines)
+                            )
+                        }
                     }
                 )
             }

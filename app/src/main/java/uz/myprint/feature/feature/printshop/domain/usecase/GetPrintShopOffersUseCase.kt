@@ -20,7 +20,8 @@ class GetPrintShopOffersUseCase(
 ) {
 
     suspend operator fun invoke(
-        config: ProductConfig,
+        config:
+        ProductConfig,
         userLatitude: Double? = null,
         userLongitude: Double? = null
     ): List<PrintShopOffer> {

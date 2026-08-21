@@ -210,14 +210,13 @@ fun AppNavHost() {
                         onBackClick = {
                             navController.popBackStack()
                         },
-                        onOrderClick = { pid, mid, ptid, sid, qty ->
+                        onOrderClick = { pid, mid, ptid, lines ->
                             navController.navigate(
                                 Screen.PrintShopSelection.createRoute(
                                     productId = pid,
                                     materialId = mid,
                                     printTypeId = ptid,
-                                    sizeId = sid,
-                                    quantity = qty
+                                    lines = lines
                                 )
                             )
                         }
@@ -242,14 +241,13 @@ fun AppNavHost() {
                     onBackClick = {
                         navController.popBackStack()
                     },
-                    onOrderClick = { pid, mid, ptid, sid, qty ->
+                    onOrderClick = { pid, mid, ptid, lines ->
                         navController.navigate(
                             Screen.PrintShopSelection.createRoute(
                                 productId = pid,
                                 materialId = mid,
                                 printTypeId = ptid,
-                                sizeId = sid,
-                                quantity = qty
+                                lines = lines
                             )
                         )
                     }
@@ -262,8 +260,7 @@ fun AppNavHost() {
                     navArgument("productId") { type = NavType.StringType },
                     navArgument("materialId") { type = NavType.StringType },
                     navArgument("printTypeId") { type = NavType.StringType },
-                    navArgument("sizeId") { type = NavType.StringType },
-                    navArgument("quantity") { type = NavType.IntType }
+                    navArgument("lines") { type = NavType.StringType }
                 )
             ) { backStackEntry ->
 
@@ -273,8 +270,7 @@ fun AppNavHost() {
                     productId = args?.getString("productId").orEmpty(),
                     materialId = args?.getString("materialId").orEmpty(),
                     printTypeId = args?.getString("printTypeId").orEmpty(),
-                    sizeId = args?.getString("sizeId").orEmpty(),
-                    quantity = args?.getInt("quantity") ?: 1,
+                    lines = args?.getString("lines").orEmpty(),
                     onBackClick = {
                         navController.popBackStack()
                     },

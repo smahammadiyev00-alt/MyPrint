@@ -36,7 +36,10 @@ fun ProductOptionsSection(
     onMaterialSelected: (ProductMaterial) -> Unit,
     onPrintTypeSelected: (ProductPrintType) -> Unit,
     onSizeSelected: (ProductSize) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+
+    /** Futbolkada o'lcham taqsimot bloki ichida beriladi. */
+    showSizes: Boolean = true
 ) {
 
     Column(modifier = modifier.padding(horizontal = 20.dp)) {
@@ -90,7 +93,7 @@ fun ProductOptionsSection(
             Spacer(modifier = Modifier.height(20.dp))
         }
 
-        if (product.sizes.isNotEmpty()) {
+        if (showSizes && product.sizes.isNotEmpty()) {
 
             GroupTitle("O'lcham")
 

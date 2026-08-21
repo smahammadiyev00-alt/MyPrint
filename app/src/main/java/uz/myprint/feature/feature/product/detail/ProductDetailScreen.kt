@@ -22,7 +22,9 @@ import uz.myprint.feature.feature.product.domain.model.ProductCategory
 import uz.myprint.feature.feature.product.domain.model.ProductMaterial
 import uz.myprint.feature.feature.product.domain.model.ProductPrintType
 import uz.myprint.feature.feature.product.domain.model.ProductSize
+import uz.myprint.feature.feature.product.domain.model.usesSizeBreakdown
 import uz.myprint.feature.feature.product.presentation.components.QuantitySelector
+import uz.myprint.feature.feature.product.presentation.components.SizeBreakdownSelector
 
 @Composable
 fun ProductDetailScreen(
@@ -33,6 +35,7 @@ fun ProductDetailScreen(
     selectedPrintType: ProductPrintType?,
     selectedSize: ProductSize?,
     quantity: Int,
+    sizeQuantities: Map<String, Int>,
 
     onMaterialSelected: (ProductMaterial) -> Unit,
     onPrintTypeSelected: (ProductPrintType) -> Unit,
@@ -40,6 +43,7 @@ fun ProductDetailScreen(
     onQuantityChange: (Int) -> Unit,
     onIncreaseQuantity: () -> Unit,
     onDecreaseQuantity: () -> Unit,
+    onSizeQuantityChange: (sizeId: String, quantity: Int) -> Unit,
 
     onBackClick: () -> Unit = {},
     onFavoriteClick: () -> Unit = {},
@@ -48,6 +52,8 @@ fun ProductDetailScreen(
     onOrderClick: () -> Unit = {}
 
 ) {
+
+    val breakdown = product.category.usesSizeBreakdown
 
     val background = Brush.verticalGradient(
         colors = listOf(
@@ -82,6 +88,11 @@ fun ProductDetailScreen(
         item {
             ProductOptionsSection(
                 product = product,
+
+                // Taqsimot rejimida o'lcham quyida alohida beriladi,
+                // shuning uchun bu yerda ko'rsatilmaydi.
+                showSizes = !breakdown,
+
                 selectedMaterial = selectedMaterial,
                 selectedPrintType = selectedPrintType,
                 selectedSize = selectedSize,
@@ -92,14 +103,27 @@ fun ProductDetailScreen(
         }
 
         item {
-            QuantitySelector(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                quantity = quantity,
-                presets = presetsFor(product.category),
-                onQuantityChange = onQuantityChange,
-                onIncrease = onIncreaseQuantity,
-                onDecrease = onDecreaseQuantity
-            )
+
+            if (breakdown) {
+
+                SizeBreakdownSelector(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    sizes = product.sizes,
+                    quantities = sizeQuantities,
+                    onQuantityChange = onSizeQuantityChange
+                )
+
+            } else {
+
+                QuantitySelector(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    quantity = quantity,
+                    presets = presetsFor(product.category),
+                    onQuantityChange = onQuantityChange,
+                    onIncrease = onIncreaseQuantity,
+                    onDecrease = onDecreaseQuantity
+                )
+            }
         }
 
         item {
@@ -118,7 +142,7 @@ fun ProductDetailScreen(
 
 /**
  * Tayyor tiraj variantlari. Maketda faqat vizitka uchun berilgan edi,
- * lekin futbolka yoki bakal uchun 100 dona mantiqsiz.
+ * lekin banner uchun 100 dona mantiqsiz.
  */
 private fun presetsFor(category: ProductCategory): List<Int> =
     when (category) {

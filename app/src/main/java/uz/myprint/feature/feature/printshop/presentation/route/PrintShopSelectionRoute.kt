@@ -23,8 +23,7 @@ fun PrintShopSelectionRoute(
     productId: String,
     materialId: String,
     printTypeId: String,
-    sizeId: String,
-    quantity: Int,
+    lines: String,
 
     onBackClick: () -> Unit = {},
 
@@ -38,14 +37,13 @@ fun PrintShopSelectionRoute(
 
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(productId, materialId, printTypeId, sizeId, quantity) {
+    LaunchedEffect(productId, materialId, printTypeId, lines) {
 
         viewModel.load(
             productId = productId,
             materialId = materialId,
             printTypeId = printTypeId,
-            sizeId = sizeId,
-            quantity = quantity
+            lines = lines
         )
     }
 

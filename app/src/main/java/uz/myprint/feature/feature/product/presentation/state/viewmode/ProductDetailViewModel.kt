@@ -9,10 +9,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uz.myprint.feature.feature.product.domain.model.Product
 import uz.myprint.feature.feature.product.domain.model.ProductCategory
+import uz.myprint.feature.feature.product.domain.model.usesSizeBreakdown
 import uz.myprint.feature.feature.product.domain.usecase.GetProductByIdUseCase
 import uz.myprint.feature.feature.product.domain.usecase.GetProductsByCategoryUseCase
 import uz.myprint.feature.feature.product.presentation.state.viewmode.ProductDetailEvent
 import uz.myprint.feature.feature.product.presentation.state.viewmode.ProductDetailUiState
+
+/** Ilova darajasidagi eng kichik tiraj. Haqiqiy chegarani
+ *  poligrafiyaning tarifi belgilaydi — biz uni oldindan to'smaymiz. */
+private const val MIN_QUANTITY = 1
 
 class ProductDetailViewModel(
     private val getProductByIdUseCase: GetProductByIdUseCase,
@@ -28,13 +33,6 @@ class ProductDetailViewModel(
         load { getProductByIdUseCase(id) }
     }
 
-    /**
-     * Kategoriya bo'yicha ochish: bosh sahifadagi kategoriya bosilganda
-     * ro'yxat ekranini o'tkazib yuborib to'g'ridan-to'g'ri shu yerga keladi.
-     *
-     * Hozircha har bir kategoriyada bitta mahsulot bor. Agar kelajakda
-     * bittadan ko'p bo'lsa, ro'yxat ekrani qaytadan kerak bo'ladi.
-     */
     fun loadProductByCategory(categoryName: String) {
 
         val category = runCatching {
@@ -70,24 +68,35 @@ class ProductDetailViewModel(
                     return@launch
                 }
 
+                val breakdown = product.category.usesSizeBreakdown
+
+                val defaultSize = product.sizes
+                    .let { list -> list.firstOrNull { it.isDefault } ?: list.firstOrNull() }
+
                 _uiState.update { state ->
                     state.copy(
                         product = product,
                         isLoading = false,
 
-                        // Standart variantlar avtomatik tanlanadi, aks holda
-                        // foydalanuvchi hech narsa bosmasa konfiguratsiya
-                        // bo'sh qoladi va narx hisoblanmaydi.
                         selectedMaterial = product.materials
                             .let { list -> list.firstOrNull { it.isDefault } ?: list.firstOrNull() },
 
                         selectedPrintType = product.printTypes
                             .let { list -> list.firstOrNull { it.isDefault } ?: list.firstOrNull() },
 
-                        selectedSize = product.sizes
-                            .let { list -> list.firstOrNull { it.isDefault } ?: list.firstOrNull() },
+                        selectedSize = if (breakdown) null else defaultSize,
 
-                        quantity = minQuantityFor(product)
+                        quantity = if (breakdown) 0 else startingQuantityFor(product),
+
+                        // Taqsimot rejimida standart o'lchamga 1 ta qo'yiladi,
+                        // shunda buyurtma tugmasi darhol ma'noli bo'ladi.
+                        sizeQuantities = if (breakdown) {
+                            product.sizes.associate { size ->
+                                size.id to if (size.id == defaultSize?.id) 1 else 0
+                            }
+                        } else {
+                            emptyMap()
+                        }
                     )
                 }
 
@@ -116,11 +125,19 @@ class ProductDetailViewModel(
             is ProductDetailEvent.SizeSelected ->
                 _uiState.update { it.copy(selectedSize = event.size) }
 
+            is ProductDetailEvent.SizeQuantityChanged ->
+                _uiState.update { state ->
+                    state.copy(
+                        sizeQuantities = state.sizeQuantities.toMutableMap().apply {
+                            this[event.sizeId] = event.quantity.coerceAtLeast(0)
+                        }
+                    )
+                }
+
             ProductDetailEvent.IncreaseQuantity -> changeQuantityBy(+1)
 
             ProductDetailEvent.DecreaseQuantity -> changeQuantityBy(-1)
 
-            // Navigatsiya hodisalari — ularni ekranning o'zi hal qiladi.
             ProductDetailEvent.OrderClicked -> Unit
 
             ProductDetailEvent.AiDesignClicked -> Unit
@@ -129,29 +146,36 @@ class ProductDetailViewModel(
 
     fun setQuantity(value: Int) {
 
-        val min = minQuantityFor(_uiState.value.product)
-
-        _uiState.update { it.copy(quantity = value.coerceAtLeast(min)) }
+        _uiState.update {
+            it.copy(quantity = value.coerceAtLeast(MIN_QUANTITY))
+        }
     }
 
+    /**
+     * +/- tugmalari. Agar joriy qiymat qadamga bo'linmasa (masalan
+     * qo'lda 150 kiritilgan), avval eng yaqin qadamga tekislanadi:
+     * 150 → + → 200, 150 → − → 100.
+     */
     private fun changeQuantityBy(direction: Int) {
 
         val state = _uiState.value
 
         val step = stepFor(state.product)
 
-        val min = minQuantityFor(state.product)
+        val current = state.quantity
 
-        val next = (state.quantity + direction * step).coerceAtLeast(min)
+        val next = when {
+            current % step == 0 -> current + direction * step
+            direction > 0 -> (current / step + 1) * step
+            else -> (current / step) * step
+        }
 
-        _uiState.update { it.copy(quantity = next) }
+        _uiState.update {
+            it.copy(quantity = next.coerceAtLeast(MIN_QUANTITY))
+        }
     }
 
-    /**
-     * Vizitka 100 donadan, futbolka 1 donadan buyurtma qilinadi.
-     * Hozircha kategoriyaga qarab; keyinchalik Product modeliga ko'chadi.
-     */
-    private fun minQuantityFor(product: Product?): Int =
+    private fun startingQuantityFor(product: Product?): Int =
         when (product?.category) {
 
             ProductCategory.BUSINESS_CARD,
@@ -166,7 +190,7 @@ class ProductDetailViewModel(
 
             ProductCategory.BUSINESS_CARD,
             ProductCategory.FLYER,
-            ProductCategory.STICKER -> 100
+            ProductCategory.STICKER -> 50
 
             else -> 1
         }
