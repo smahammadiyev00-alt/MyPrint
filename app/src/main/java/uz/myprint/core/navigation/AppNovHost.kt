@@ -21,7 +21,7 @@ import uz.myprint.feature.feature.product.presentation.route.ProductRoute
 import uz.myprint.feature.feature.promotion.presentation.SpecialOffersScreen
 import uz.myprint.feature.login.LoginScreen
 import uz.myprint.feature.otp.OtpScreen
-
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 
 @Composable
 fun AppNavHost() {
