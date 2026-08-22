@@ -13,7 +13,8 @@ class PrintShopSelectionViewModelFactory : ViewModelProvider.Factory {
 
             return PrintShopSelectionViewModel(
                 getProductByIdUseCase = AppContainer.getProductByIdUseCase,
-                getPrintShopOffersUseCase = AppContainer.getPrintShopOffersUseCase
+                getPrintShopOffersUseCase = AppContainer.getPrintShopOffersUseCase,
+                cartRepository = AppContainer.cartRepository
             ) as T
         }
 

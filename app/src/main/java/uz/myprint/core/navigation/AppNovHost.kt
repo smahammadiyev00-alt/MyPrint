@@ -13,6 +13,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import uz.myprint.feature.design.presentation.DesignScreen
 import uz.myprint.feature.feature.SplashScreen.SplashScreen
+import uz.myprint.feature.feature.cart.presentation.route.CartRoute
 import uz.myprint.feature.feature.home.HomeScreen
 import uz.myprint.feature.feature.printshop.presentation.route.PrintShopSelectionRoute
 import uz.myprint.feature.feature.product.detail.ProductDetailRoute
@@ -33,7 +34,7 @@ fun AppNavHost() {
     val bottomBarRoutes = setOf(
         Screen.Home.route,
         Screen.Orders.route,
-        Screen.Favorites.route,
+        Screen.Cart.route,
         Screen.Profile.route
     )
 
@@ -70,7 +71,9 @@ fun AppNavHost() {
                     },
 
                     onFavoritesClick = {
-                        // Keyingi bosqichda FavoritesScreen ulaymiz
+                        navController.navigate(Screen.Cart.route) {
+                            launchSingleTop = true
+                        }
                     },
 
                     onProfileClick = {
@@ -274,8 +277,23 @@ fun AppNavHost() {
                     onBackClick = {
                         navController.popBackStack()
                     },
-                    onContinue = {
-                        // Keyingi bosqich: savat yoki buyurtma tasdiqlash
+                    onAddedToCart = {
+                        navController.navigate(Screen.Cart.route)
+                    }
+                )
+            }
+
+            composable(Screen.Cart.route) {
+
+                CartRoute(
+                    onCheckout = {
+                        // Keyingi bosqich: buyurtma tasdiqlash
+                    },
+                    onBrowseProducts = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route)
+                            launchSingleTop = true
+                        }
                     }
                 )
             }

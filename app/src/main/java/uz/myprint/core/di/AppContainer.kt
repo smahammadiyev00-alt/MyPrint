@@ -1,5 +1,6 @@
 package uz.myprint.core.di
 
+import uz.myprint.feature.feature.cart.data.repository.InMemoryCartRepository
 import uz.myprint.feature.feature.printshop.data.repository.PrintShopRepositoryImpl
 import uz.myprint.feature.feature.printshop.domain.usecase.GetPrintShopOffersUseCase
 import uz.myprint.feature.feature.product.data.datasource.ProductDataSourceImpl
@@ -7,7 +8,7 @@ import uz.myprint.feature.feature.product.data.repository.ProductRepositoryImpl
 import uz.myprint.feature.feature.product.domain.usecase.GetProductByIdUseCase
 import uz.myprint.feature.feature.product.domain.usecase.GetProductsByCategoryUseCase
 import uz.myprint.feature.feature.product.domain.usecase.GetProductsUseCase
-
+import uz.myprint.feature.feature.cart.domain.repository.CartRepository
 object AppContainer {
 
     // Product
@@ -38,5 +39,13 @@ object AppContainer {
 
     val getPrintShopOffersUseCase by lazy {
         GetPrintShopOffersUseCase(printShopRepository)
+    }
+
+    // Cart
+    //
+    // Bitta nusxada bo'lishi shart: har ekran o'z savatini yaratsa,
+    // qo'shilgan mahsulot boshqa ekranda ko'rinmaydi.
+    val cartRepository: CartRepository by lazy {
+        InMemoryCartRepository()
     }
 }

@@ -9,7 +9,7 @@ sealed class Screen(val route: String) {
     data object Otp : Screen("otp/{phone}") {
         fun createRoute(phone: String) = "otp/$phone"
     }
-
+    data object Cart : Screen("cart")
     data object Home : Screen("home")
 
 

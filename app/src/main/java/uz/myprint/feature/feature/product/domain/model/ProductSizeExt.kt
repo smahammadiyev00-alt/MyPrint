@@ -1,6 +1,5 @@
 package uz.myprint.feature.feature.product.domain.model
 
-import kotlin.math.max
 import kotlin.math.min
 
 /** Erkin kiritilgan o'lchamlar shu prefiks bilan belgilanadi. */

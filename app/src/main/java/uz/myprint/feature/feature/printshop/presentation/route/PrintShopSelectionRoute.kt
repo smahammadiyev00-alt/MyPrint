@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import uz.myprint.core.designsystem.theme.MyPrintColors
 import uz.myprint.core.di.PrintShopSelectionViewModelFactory
-import uz.myprint.feature.feature.printshop.domain.model.PrintShopOffer
 import uz.myprint.feature.feature.printshop.presentation.screen.PrintShopSelectionScreen
 import uz.myprint.feature.feature.printshop.presentation.viewmodel.PrintShopSelectionViewModel
 
@@ -27,7 +26,8 @@ fun PrintShopSelectionRoute(
 
     onBackClick: () -> Unit = {},
 
-    onContinue: (PrintShopOffer) -> Unit = {}
+    /** Savatga qo'shilgach chaqiriladi. */
+    onAddedToCart: () -> Unit = {}
 
 ) {
 
@@ -37,6 +37,8 @@ fun PrintShopSelectionRoute(
 
     val uiState by viewModel.uiState.collectAsState()
 
+    val addedToCart by viewModel.addedToCart.collectAsState()
+
     LaunchedEffect(productId, materialId, printTypeId, lines) {
 
         viewModel.load(
@@ -45,6 +47,13 @@ fun PrintShopSelectionRoute(
             printTypeId = printTypeId,
             lines = lines
         )
+    }
+
+    LaunchedEffect(addedToCart) {
+
+        if (addedToCart) {
+            onAddedToCart()
+        }
     }
 
     when {
@@ -79,7 +88,7 @@ fun PrintShopSelectionRoute(
                 productName = uiState.productName,
                 quantity = uiState.quantity,
                 onBackClick = onBackClick,
-                onContinue = onContinue
+                onContinue = viewModel::addToCart
             )
         }
     }
