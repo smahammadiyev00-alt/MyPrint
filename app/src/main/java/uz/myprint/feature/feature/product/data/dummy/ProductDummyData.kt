@@ -21,10 +21,14 @@ object ProductDummyData {
             gallery = emptyList(),
 
             materials = listOf(
-                MaterialDummyData.art300,
-                MaterialDummyData.art350,
-                MaterialDummyData.kraft,
-                MaterialDummyData.laminated
+                MaterialDummyData.glossy160,
+                MaterialDummyData.glossy200,
+                MaterialDummyData.glossy250,
+                MaterialDummyData.glossy300,
+                MaterialDummyData.matte160,
+                MaterialDummyData.matte200,
+                MaterialDummyData.matte250,
+                MaterialDummyData.matte300
             ),
 
             printTypes = listOf(
@@ -146,10 +150,6 @@ object ProductDummyData {
             thumbnail = "",
             gallery = emptyList(),
 
-            materials = listOf(
-                MaterialDummyData.orakalTransparent,
-                MaterialDummyData.laminated
-            ),
 
             printTypes = listOf(
                 PrintTypeDummyData.singleSide,
@@ -187,8 +187,11 @@ object ProductDummyData {
             gallery = emptyList(),
 
             materials = listOf(
-                MaterialDummyData.art300,
-                MaterialDummyData.art350
+                MaterialDummyData.glossy160,
+                MaterialDummyData.glossy160,
+                MaterialDummyData.glossy200,
+                MaterialDummyData.matte160,
+                MaterialDummyData.matte200
             ),
 
             printTypes = listOf(
@@ -228,8 +231,8 @@ object ProductDummyData {
             gallery = emptyList(),
 
             materials = listOf(
-                MaterialDummyData.art300,
-                MaterialDummyData.laminated
+                MaterialDummyData.glossy200,
+                MaterialDummyData.matte200
             ),
 
             printTypes = listOf(

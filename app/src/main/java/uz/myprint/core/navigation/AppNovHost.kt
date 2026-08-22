@@ -22,6 +22,7 @@ import uz.myprint.feature.feature.promotion.presentation.SpecialOffersScreen
 import uz.myprint.feature.login.LoginScreen
 import uz.myprint.feature.otp.OtpScreen
 
+
 @Composable
 fun AppNavHost() {
 
@@ -48,7 +49,7 @@ fun AppNavHost() {
                     selectedItem = when (currentRoute) {
                         Screen.Home.route -> "home"
                         Screen.Orders.route -> "orders"
-                        Screen.Favorites.route -> "favorites"
+                        Screen.Cart.route -> "cart"
                         Screen.Profile.route -> "profile"
                         else -> "home"
                     },
@@ -70,7 +71,7 @@ fun AppNavHost() {
                         navController.navigate(Screen.Design.route)
                     },
 
-                    onFavoritesClick = {
+                    onCartClick = {
                         navController.navigate(Screen.Cart.route) {
                             launchSingleTop = true
                         }

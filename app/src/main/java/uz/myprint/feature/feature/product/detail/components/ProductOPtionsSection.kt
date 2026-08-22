@@ -68,24 +68,11 @@ fun ProductOptionsSection(
 
         if (product.materials.isNotEmpty()) {
 
-            GroupTitle("Material")
-
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-
-                product.materials.forEach { material ->
-
-                    OptionChip(
-                        label = listOfNotNull(material.name, material.thickness)
-                            .joinToString(" "),
-                        isSelected = material.id == selectedMaterial?.id,
-                        onClick = { onMaterialSelected(material) }
-                    )
-                }
-            }
+            MaterialSection(
+                materials = product.materials,
+                selectedMaterial = selectedMaterial,
+                onMaterialSelected = onMaterialSelected
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
         }
@@ -115,55 +102,181 @@ fun ProductOptionsSection(
 
         if (showSizes && product.sizes.isNotEmpty()) {
 
-            GroupTitle("O'lcham")
+            SizeSection(
+                product = product,
+                selectedSize = selectedSize,
+                onSizeSelected = onSizeSelected
+            )
+        }
+    }
+}
 
-            val allowsCustom = product.category.allowsCustomSize
+/**
+ * Materiallar ikki bosqichda ko'rsatiladi: avval sirt (glyansli /
+ * matoviy), keyin zichlik (160g ... 350g). Aks holda vizitkada
+ * o'nta chip bir qatorga tushib ketadi.
+ *
+ * Ma'lumot modeli o'zgarmaydi — bu faqat ko'rsatish usuli.
+ * Zichligi yo'q materiallar (banner, orakal) oddiy qatorda chiqadi.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MaterialSection(
+    materials: List<ProductMaterial>,
+    selectedMaterial: ProductMaterial?,
+    onMaterialSelected: (ProductMaterial) -> Unit
+) {
 
-            val customUnit = customUnitFor(product.category)
+    // Nom bo'yicha guruhlash. Tartib ma'lumotdagidek qoladi.
+    val byName = remember(materials) {
+        materials.groupBy { it.name }
+    }
 
-            var customOpen by remember {
-                mutableStateOf(selectedSize?.isCustom == true)
-            }
+    val hasThickness = remember(materials) {
+        materials.any { !it.thickness.isNullOrBlank() }
+    }
 
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+    val useTwoLevel = byName.size > 1 && hasThickness
 
-                product.sizes.forEach { size ->
+    if (!useTwoLevel) {
 
-                    OptionChip(
-                        label = size.title,
-                        isSelected = size.id == selectedSize?.id,
-                        onClick = {
-                            customOpen = false
-                            onSizeSelected(size)
-                        }
-                    )
-                }
+        GroupTitle("Material")
 
-                if (allowsCustom) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
 
-                    OptionChip(
-                        label = "Boshqa o'lcham",
-                        isSelected = customOpen || selectedSize?.isCustom == true,
-                        onClick = { customOpen = true }
-                    )
-                }
-            }
+            materials.forEach { material ->
 
-            if (allowsCustom && customOpen) {
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                CustomSizeInput(
-                    unit = customUnit,
-                    selectedSize = selectedSize,
-                    onSizeSelected = onSizeSelected
+                OptionChip(
+                    label = listOfNotNull(material.name, material.thickness)
+                        .joinToString(" "),
+                    isSelected = material.id == selectedMaterial?.id,
+                    onClick = { onMaterialSelected(material) }
                 )
             }
         }
+
+        return
+    }
+
+    val selectedName = selectedMaterial?.name ?: byName.keys.first()
+
+    val thicknesses = byName[selectedName].orEmpty()
+
+    GroupTitle("Qog'oz turi")
+
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+
+        byName.forEach { (name, group) ->
+
+            OptionChip(
+                label = name,
+                isSelected = name == selectedName,
+                onClick = {
+
+                    // Sirt almashganda zichlikni saqlab qolamiz.
+                    // Bu sirtda o'sha zichlik bo'lmasa, birinchisi olinadi.
+                    val keepThickness = group
+                        .firstOrNull { it.thickness == selectedMaterial?.thickness }
+
+                    val next = keepThickness
+                        ?: group.firstOrNull { it.isDefault }
+                        ?: group.first()
+
+                    onMaterialSelected(next)
+                }
+            )
+        }
+    }
+
+    // Tanlangan sirtda bitta variant bo'lsa (masalan Kraft),
+    // zichlik qatori ko'rsatilmaydi.
+    if (thicknesses.size > 1) {
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        GroupTitle("Zichlik")
+
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+
+            thicknesses.forEach { material ->
+
+                OptionChip(
+                    label = material.thickness.orEmpty(),
+                    isSelected = material.id == selectedMaterial?.id,
+                    onClick = { onMaterialSelected(material) }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SizeSection(
+    product: Product,
+    selectedSize: ProductSize?,
+    onSizeSelected: (ProductSize) -> Unit
+) {
+
+    GroupTitle("O'lcham")
+
+    val allowsCustom = product.category.allowsCustomSize
+
+    val customUnit = customUnitFor(product.category)
+
+    var customOpen by remember {
+        mutableStateOf(selectedSize?.isCustom == true)
+    }
+
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+
+        product.sizes.forEach { size ->
+
+            OptionChip(
+                label = size.title,
+                isSelected = size.id == selectedSize?.id,
+                onClick = {
+                    customOpen = false
+                    onSizeSelected(size)
+                }
+            )
+        }
+
+        if (allowsCustom) {
+
+            OptionChip(
+                label = "Boshqa o'lcham",
+                isSelected = customOpen || selectedSize?.isCustom == true,
+                onClick = { customOpen = true }
+            )
+        }
+    }
+
+    if (allowsCustom && customOpen) {
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        CustomSizeInput(
+            unit = customUnit,
+            selectedSize = selectedSize,
+            onSizeSelected = onSizeSelected
+        )
     }
 }
 

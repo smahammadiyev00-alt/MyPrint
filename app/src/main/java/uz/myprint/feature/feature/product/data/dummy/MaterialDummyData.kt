@@ -4,34 +4,63 @@ import uz.myprint.feature.feature.product.domain.model.ProductMaterial
 
 object MaterialDummyData {
 
-    // Business Card
-    val art300 = ProductMaterial(
-        id = "art300",
-        name = "Art Paper",
+    // Vizitka qog'ozlari
+    val glossy160 = ProductMaterial(
+        id = "glossy_160",
+        name = "Glyansli",
+        thickness = "160g",
+        additionalPrice = 0
+    )
+
+    val glossy200 = ProductMaterial(
+        id = "glossy_200",
+        name = "Glyansli",
+        thickness = "200g",
+        additionalPrice = 100
+    )
+
+    val glossy250 = ProductMaterial(
+        id = "glossy_250",
+        name = "Glyansli",
+        thickness = "250g",
+        additionalPrice = 200
+    )
+
+    val glossy300 = ProductMaterial(
+        id = "glossy_300",
+        name = "Glyansli",
         thickness = "300g",
-        description = "Premium coated paper",
+        description = "Zich va qattiq, eng ko'p tanlanadi.",
+        additionalPrice = 350,
         isDefault = true
     )
 
-    val art350 = ProductMaterial(
-        id = "art350",
-        name = "Art Paper",
-        thickness = "350g",
-        description = "Extra thick coated paper"
+    val matte160 = ProductMaterial(
+        id = "matte_160",
+        name = "Matoviy",
+        thickness = "160g",
+        additionalPrice = 0
     )
 
-    val kraft = ProductMaterial(
-        id = "kraft",
-        name = "Kraft Paper",
+    val matte200 = ProductMaterial(
+        id = "matte_200",
+        name = "Matoviy",
+        thickness = "200g",
+        additionalPrice = 100
+    )
+
+    val matte250 = ProductMaterial(
+        id = "matte_250",
+        name = "Matoviy",
+        thickness = "250g",
+        additionalPrice = 200
+    )
+
+    val matte300 = ProductMaterial(
+        id = "matte_300",
+        name = "Matoviy",
         thickness = "300g",
-        description = "Natural kraft paper"
-    )
-
-    val laminated = ProductMaterial(
-        id = "laminated",
-        name = "Laminated Paper",
-        thickness = "350g",
-        description = "Matte or glossy laminated"
+        additionalPrice = 350
     )
 
     // Banner

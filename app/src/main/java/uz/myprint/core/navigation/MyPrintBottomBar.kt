@@ -11,16 +11,17 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material.icons.outlined.ReceiptLong
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +32,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import uz.myprint.core.designsystem.theme.MyPrintColors
 
 private enum class BottomNavItem(
@@ -46,9 +49,12 @@ private enum class BottomNavItem(
         label = "Buyurtmalar",
         icon = Icons.Outlined.ReceiptLong
     ),
-    FAVORITES(
-        label = "Sevimlilar",
-        icon = Icons.Outlined.FavoriteBorder
+
+    // Sevimlilar Profil ichiga ko'chdi: savat buyurtma oqimining
+    // majburiy bo'g'ini, sevimlilar esa qulaylik.
+    CART(
+        label = "Savat",
+        icon = Icons.Outlined.ShoppingCart
     ),
     PROFILE(
         label = "Profil",
@@ -59,10 +65,11 @@ private enum class BottomNavItem(
 @Composable
 fun MyPrintBottomBar(
     selectedItem: String = "home",
+    cartItemCount: Int = 0,
     onHomeClick: () -> Unit = {},
     onOrdersClick: () -> Unit = {},
     onCreateClick: () -> Unit = {},
-    onFavoritesClick: () -> Unit = {},
+    onCartClick: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
     Surface(
@@ -100,9 +107,10 @@ fun MyPrintBottomBar(
                 )
 
                 BottomNavItemView(
-                    item = BottomNavItem.FAVORITES,
-                    selected = selectedItem == "favorites",
-                    onClick = onFavoritesClick
+                    item = BottomNavItem.CART,
+                    selected = selectedItem == "cart",
+                    badgeCount = cartItemCount,
+                    onClick = onCartClick
                 )
 
                 BottomNavItemView(
@@ -125,15 +133,10 @@ fun MyPrintBottomBar(
 private fun RowScope.BottomNavItemView(
     item: BottomNavItem,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    badgeCount: Int = 0
 ) {
-    val iconColor = if (selected) {
-        MyPrintColors.Primary
-    } else {
-        MyPrintColors.TextSecondary
-    }
-
-    val textColor = if (selected) {
+    val contentColor = if (selected) {
         MyPrintColors.Primary
     } else {
         MyPrintColors.TextSecondary
@@ -147,21 +150,47 @@ private fun RowScope.BottomNavItemView(
         verticalArrangement = Arrangement.Center
     ) {
 
-        IconButton(
-            onClick = onClick,
-            modifier = Modifier.size(30.dp)
-        ) {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = item.label,
-                tint = iconColor,
-                modifier = Modifier.size(21.dp)
-            )
+        Box(contentAlignment = Alignment.Center) {
+
+            IconButton(
+                onClick = onClick,
+                modifier = Modifier.size(30.dp)
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = item.label,
+                    tint = contentColor,
+                    modifier = Modifier.size(21.dp)
+                )
+            }
+
+            if (badgeCount > 0) {
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 6.dp, y = (-4).dp)
+                        .size(16.dp)
+                        .background(
+                            color = MyPrintColors.Notification,
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    Text(
+                        text = if (badgeCount > 9) "9+" else badgeCount.toString(),
+                        color = Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
 
         Text(
             text = item.label,
-            color = textColor,
+            color = contentColor,
             style = MaterialTheme.typography.labelSmall
         )
     }
