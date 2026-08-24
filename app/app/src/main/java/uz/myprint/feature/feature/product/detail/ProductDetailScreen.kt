@@ -33,12 +33,14 @@ fun ProductDetailScreen(
 
     selectedMaterial: ProductMaterial?,
     selectedPrintType: ProductPrintType?,
+    selectedFinishIds: Set<String>,
     selectedSize: ProductSize?,
     quantity: Int,
     sizeQuantities: Map<String, Int>,
 
     onMaterialSelected: (ProductMaterial) -> Unit,
     onPrintTypeSelected: (ProductPrintType) -> Unit,
+    onFinishToggled: (ProductPrintType) -> Unit,
     onSizeSelected: (ProductSize) -> Unit,
     onQuantityChange: (Int) -> Unit,
     onIncreaseQuantity: () -> Unit,
@@ -95,9 +97,11 @@ fun ProductDetailScreen(
 
                 selectedMaterial = selectedMaterial,
                 selectedPrintType = selectedPrintType,
+                selectedFinishIds = selectedFinishIds,
                 selectedSize = selectedSize,
                 onMaterialSelected = onMaterialSelected,
                 onPrintTypeSelected = onPrintTypeSelected,
+                onFinishToggled = onFinishToggled,
                 onSizeSelected = onSizeSelected
             )
         }
@@ -115,7 +119,7 @@ fun ProductDetailScreen(
 
             } else {
 
-                _root_ide_package_.uz.myprint.feature.feature.product.presentation.components.QuantitySelector(
+                QuantitySelector(
                     modifier = Modifier.padding(horizontal = 20.dp),
                     quantity = quantity,
                     presets = presetsFor(product.category),

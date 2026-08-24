@@ -18,7 +18,7 @@ fun ProductRoute(
 
 ) {
 
-    val viewModel: ProductViewModel = viewModel(
+    val viewModel: uz.myprint.feature.feature.product.presentation.viewmodel.ProductViewModel = viewModel(
         factory = ProductViewModelFactory()
     )
 
@@ -39,7 +39,7 @@ fun ProductRoute(
             }
         }
 
-    ProductScreen(
+    _root_ide_package_.uz.myprint.feature.feature.product.presentation.screen.ProductScreen(
         viewModel = viewModel,
         products = filteredProducts,
         onProductClick = onProductClick

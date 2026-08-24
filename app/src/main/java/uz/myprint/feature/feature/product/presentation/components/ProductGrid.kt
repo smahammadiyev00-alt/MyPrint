@@ -58,7 +58,7 @@ fun ProductGrid(
 
             items(products, key = { it.id }) { product ->
 
-                ProductCard(
+                _root_ide_package_.uz.myprint.feature.feature.product.presentation.components.ProductCard(
                     product = product,
                     onClick = { onProductClick(product) }
                 )

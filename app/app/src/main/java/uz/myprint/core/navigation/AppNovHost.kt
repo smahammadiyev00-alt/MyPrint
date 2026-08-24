@@ -21,7 +21,7 @@ import uz.myprint.feature.feature.product.presentation.route.ProductRoute
 import uz.myprint.feature.feature.promotion.presentation.SpecialOffersScreen
 import uz.myprint.feature.login.LoginScreen
 import uz.myprint.feature.otp.OtpScreen
-import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+
 
 @Composable
 fun AppNavHost() {
@@ -197,7 +197,7 @@ fun AppNavHost() {
                 if (category == "ALL") {
 
                     // "Barchasi" — hamma mahsulotlar ro'yxati
-                    _root_ide_package_.uz.myprint.feature.feature.product.presentation.route.ProductRoute(
+                    ProductRoute(
                         category = category,
                         onProductClick = { productId ->
                             navController.navigate(
@@ -209,17 +209,18 @@ fun AppNavHost() {
                 } else {
 
                     // Aniq kategoriya — ro'yxat ekrani o'tkazib yuboriladi
-                    _root_ide_package_.uz.myprint.feature.feature.product.detail.ProductDetailRoute(
+                    ProductDetailRoute(
                         category = category,
                         onBackClick = {
                             navController.popBackStack()
                         },
-                        onOrderClick = { pid, mid, ptid, lines ->
+                        onOrderClick = { pid, mid, ptid, finishes, lines ->
                             navController.navigate(
                                 Screen.PrintShopSelection.createRoute(
                                     productId = pid,
                                     materialId = mid,
                                     printTypeId = ptid,
+                                    finishIds = finishes,
                                     lines = lines
                                 )
                             )
@@ -240,17 +241,18 @@ fun AppNavHost() {
                 val productId =
                     backStackEntry.arguments?.getString("productId") ?: ""
 
-                _root_ide_package_.uz.myprint.feature.feature.product.detail.ProductDetailRoute(
+                ProductDetailRoute(
                     productId = productId,
                     onBackClick = {
                         navController.popBackStack()
                     },
-                    onOrderClick = { pid, mid, ptid, lines ->
+                    onOrderClick = { pid, mid, ptid, finishes, lines ->
                         navController.navigate(
                             Screen.PrintShopSelection.createRoute(
                                 productId = pid,
                                 materialId = mid,
                                 printTypeId = ptid,
+                                finishIds = finishes,
                                 lines = lines
                             )
                         )
@@ -264,6 +266,7 @@ fun AppNavHost() {
                     navArgument("productId") { type = NavType.StringType },
                     navArgument("materialId") { type = NavType.StringType },
                     navArgument("printTypeId") { type = NavType.StringType },
+                    navArgument("finishIds") { type = NavType.StringType },
                     navArgument("lines") { type = NavType.StringType }
                 )
             ) { backStackEntry ->
@@ -274,6 +277,7 @@ fun AppNavHost() {
                     productId = args?.getString("productId").orEmpty(),
                     materialId = args?.getString("materialId").orEmpty(),
                     printTypeId = args?.getString("printTypeId").orEmpty(),
+                    finishIds = args?.getString("finishIds").orEmpty(),
                     lines = args?.getString("lines").orEmpty(),
                     onBackClick = {
                         navController.popBackStack()

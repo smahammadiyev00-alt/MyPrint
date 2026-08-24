@@ -75,7 +75,9 @@ fun ProductCard(
         ) {
 
             Icon(
-                imageVector = iconFor(product.category),
+                imageVector = _root_ide_package_.uz.myprint.feature.feature.product.presentation.components.iconFor(
+                    product.category
+                ),
                 contentDescription = null,
                 tint = MyPrintColors.Primary,
                 modifier = Modifier

@@ -17,7 +17,7 @@ import uz.myprint.feature.feature.product.presentation.viewmodel.ProductViewMode
 @Composable
 fun ProductScreen(
 
-    viewModel: ProductViewModel,
+    viewModel: uz.myprint.feature.feature.product.presentation.viewmodel.ProductViewModel,
 
     products: List<Product>,
 
@@ -58,7 +58,7 @@ fun ProductScreen(
 
         else -> {
 
-            ProductGrid(
+            _root_ide_package_.uz.myprint.feature.feature.product.presentation.components.ProductGrid(
                 products = products,
                 onProductClick = { product ->
                     onProductClick(product.id)

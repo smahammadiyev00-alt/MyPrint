@@ -14,6 +14,11 @@ sealed interface ProductDetailEvent {
         val printType: ProductPrintType
     ) : ProductDetailEvent
 
+    /** Laminatsiya / UV lak yoqildi yoki o'chirildi. */
+    data class FinishToggled(
+        val finish: ProductPrintType
+    ) : ProductDetailEvent
+
     data class SizeSelected(
         val size: ProductSize
     ) : ProductDetailEvent

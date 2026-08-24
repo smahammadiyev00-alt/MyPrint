@@ -9,9 +9,9 @@ class ProductDetailViewModelFactory : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
 
-        if (modelClass.isAssignableFrom(ProductDetailViewModel::class.java)) {
+        if (modelClass.isAssignableFrom(_root_ide_package_.uz.myprint.feature.feature.product.presentation.viewmodel.ProductDetailViewModel::class.java)) {
 
-            return ProductDetailViewModel(
+            return _root_ide_package_.uz.myprint.feature.feature.product.presentation.viewmodel.ProductDetailViewModel(
                 getProductByIdUseCase = AppContainer.getProductByIdUseCase,
                 getProductsByCategoryUseCase = AppContainer.getProductsByCategoryUseCase
             ) as T

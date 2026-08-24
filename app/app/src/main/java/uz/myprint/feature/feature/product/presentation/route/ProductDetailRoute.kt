@@ -44,8 +44,9 @@ fun ProductDetailRoute(
         productId: String,
         materialId: String,
         printTypeId: String,
+        finishIds: String,
         lines: String
-    ) -> Unit = { _, _, _, _ -> }
+    ) -> Unit = { _, _, _, _, _ -> }
 
 ) {
 
@@ -99,6 +100,7 @@ fun ProductDetailRoute(
 
                     selectedMaterial = uiState.selectedMaterial,
                     selectedPrintType = uiState.selectedPrintType,
+                    selectedFinishIds = uiState.selectedFinishIds,
                     selectedSize = uiState.selectedSize,
                     quantity = uiState.quantity,
                     sizeQuantities = uiState.sizeQuantities,
@@ -109,6 +111,10 @@ fun ProductDetailRoute(
 
                     onPrintTypeSelected = {
                         viewModel.onEvent(ProductDetailEvent.PrintTypeSelected(it))
+                    },
+
+                    onFinishToggled = {
+                        viewModel.onEvent(ProductDetailEvent.FinishToggled(it))
                     },
 
                     onSizeSelected = {
@@ -166,6 +172,13 @@ fun ProductDetailRoute(
                                 product.id,
                                 uiState.selectedMaterial?.id.orEmpty(),
                                 uiState.selectedPrintType?.id.orEmpty(),
+
+                                // Faqat tanlangan qog'ozda haqiqatan
+                                // mavjud bo'lganlari yuboriladi.
+                                ProductConfig.encodeFinishes(
+                                    uiState.selectedFinishes.map { it.id }
+                                ),
+
                                 ProductConfig.encodeLines(lines)
                             )
                         }

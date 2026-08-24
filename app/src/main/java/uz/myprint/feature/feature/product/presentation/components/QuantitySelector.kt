@@ -127,7 +127,7 @@ fun QuantitySelector(
                             text = digits
 
                             digits.toIntOrNull()?.let { value ->
-                                if (value in 1..MAX_QUANTITY) {
+                                if (value in 1.._root_ide_package_.uz.myprint.feature.feature.product.presentation.components.MAX_QUANTITY) {
                                     onQuantityChange(value)
                                 }
                             }

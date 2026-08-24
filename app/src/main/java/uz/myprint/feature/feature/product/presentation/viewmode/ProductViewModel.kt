@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import uz.myprint.feature.feature.product.domain.usecase.GetProductByIdUseCase
 import uz.myprint.feature.feature.product.domain.usecase.GetProductsUseCase
-import uz.myprint.feature.feature.product.presentation.state.viewmode.ProductUiState
+import uz.myprint.feature.feature.product.presentation.viewmode.ProductUiState
 
 class ProductViewModel(
     private val getProductsUseCase: GetProductsUseCase,

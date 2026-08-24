@@ -1,0 +1,124 @@
+package uz.myprint.feature.feature.printshop.domain.model
+
+import uz.myprint.feature.feature.product.domain.model.ProductCategory
+import uz.myprint.feature.feature.product.domain.model.ProductMaterial
+import uz.myprint.feature.feature.product.domain.model.ProductPrintType
+import uz.myprint.feature.feature.product.domain.model.ProductSize
+import uz.myprint.feature.feature.product.domain.model.parseCustomSizeId
+
+/**
+ * Mijoz tanlagan konfiguratsiya.
+ *
+ * Soni har doim qatorlar orqali beriladi. Vizitka uchun bitta qator,
+ * futbolka uchun har o'lcham bo'yicha alohida qator — shunda narx
+ * hisoblash mantiqi ikkala holat uchun bir xil bo'ladi.
+ */
+data class ProductConfig(
+
+    val productId: String,
+
+    val category: ProductCategory,
+
+    val material: ProductMaterial? = null,
+
+    val printType: ProductPrintType? = null,
+
+    /** Laminatsiya, UV lak va boshqa qo'shimchalar. */
+    val finishes: List<ProductPrintType> = emptyList(),
+
+    val lines: List<ConfigLine> = emptyList(),
+
+    val isRush: Boolean = false,
+
+    val needsDelivery: Boolean = false
+
+) {
+
+    /** Barcha o'lchamlar bo'yicha jami. */
+    val quantity: Int
+        get() = lines.sumOf { it.quantity }
+
+    /**
+     * O'lchami bitta bo'lgan mahsulotlar uchun qulaylik.
+     * Futbolkada ma'nosi yo'q — u yerda lines ishlatiladi.
+     */
+    val size: ProductSize?
+        get() = lines.firstOrNull()?.size
+
+    /** Material, bosma turi va qo'shimchalar uchun narx, o'lchamsiz. */
+    val optionsPricePerUnit: Long
+        get() = (material?.additionalPrice ?: 0L) +
+                (printType?.additionalPrice ?: 0L) +
+                finishes.sumOf { it.additionalPrice }
+
+    companion object {
+
+        /** Bo'sh yo'l bo'lagi marshrutni buzadi, shuning uchun belgi. */
+        const val NO_FINISHES = "-"
+
+        /** Navigatsiya argumenti uchun: "laminate,uv_print". */
+        fun encodeFinishes(finishes: Collection<String>): String =
+            finishes
+                .filter { it.isNotBlank() }
+                .joinToString(",")
+                .ifBlank { NO_FINISHES }
+
+        /** "laminate,uv_print" -> mahsulotdagi obyektlar. */
+        fun decodeFinishes(
+            encoded: String,
+            available: List<ProductPrintType>
+        ): List<ProductPrintType> {
+
+            if (encoded.isBlank() || encoded == NO_FINISHES) return emptyList()
+
+            val ids = encoded.split(",").map { it.trim() }.toSet()
+
+            return available.filter { it.id in ids }
+        }
+
+        /**
+         * Navigatsiya argumenti uchun: "m:10,l:15,xl:5".
+         * Erkin o'lcham: "custom-800x1200:1".
+         * Nol miqdorli qatorlar tashlab yuboriladi.
+         */
+        fun encodeLines(lines: List<ConfigLine>): String =
+            lines
+                .filter { it.quantity > 0 }
+                .joinToString(",") { line ->
+                    "${line.size?.id.orEmpty()}:${line.quantity}"
+                }
+                .ifBlank { ":0" }
+
+        /**
+         * "m:10,l:15,xl:5" -> qatorlar.
+         * Katalogdagi o'lchamlar mahsulotdan topiladi,
+         * erkin o'lchamlar id'ning o'zidan tiklanadi.
+         */
+        fun decodeLines(
+            encoded: String,
+            availableSizes: List<ProductSize>
+        ): List<ConfigLine> =
+            encoded
+                .split(",")
+                .mapNotNull { part ->
+
+                    val pieces = part.split(":")
+
+                    if (pieces.size != 2) return@mapNotNull null
+
+                    val quantity = pieces[1].toIntOrNull() ?: return@mapNotNull null
+
+                    if (quantity <= 0) return@mapNotNull null
+
+                    val sizeId = pieces[0]
+
+                    val size = availableSizes.firstOrNull { it.id == sizeId }
+                        ?: parseCustomSizeId(sizeId)
+
+                    ConfigLine(
+                        size = size,
+                        quantity = quantity
+                    )
+                }
+    }
+}

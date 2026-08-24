@@ -1,4 +1,4 @@
-package uz.myprint.feature.feature.product.presentation.state.viewmode
+package uz.myprint.feature.feature.product.presentation.viewmode
 
 import uz.myprint.feature.feature.product.domain.model.Product
 
