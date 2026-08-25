@@ -387,6 +387,9 @@ private fun CartItem.configSummary(): String =
         config.size?.title,
         config.material?.name,
         config.printType?.name,
+        config.finishes
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString(" + ") { it.name },
         "${config.quantity} dona"
     ).joinToString(" · ")
 

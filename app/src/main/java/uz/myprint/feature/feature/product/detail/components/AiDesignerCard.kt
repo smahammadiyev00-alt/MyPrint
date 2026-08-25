@@ -1,7 +1,7 @@
 package uz.myprint.feature.feature.product.detail.components
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.runtime.Composable
 
 @Composable
@@ -10,10 +10,11 @@ fun AiDesignerCard(
 ) {
 
     ActionCard(
-        icon = Icons.Outlined.AutoAwesome,
+        icon = Icons.Rounded.AutoAwesome,
         title = "AI Designer",
-        description = "AI yordamida professional dizayn yarating.",
+        description = "Bir necha so'z yozing — maket o'zi tayyorlanadi.",
+        badge = "1 daqiqada",
+        highlighted = true,
         onClick = onClick
     )
-
 }

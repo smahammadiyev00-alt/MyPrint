@@ -63,6 +63,26 @@ object MaterialDummyData {
         additionalPrice = 350
     )
 
+    // Soft Touch — UV lak faqat shu qog'ozda ishlaydi.
+    val softTouch300 = ProductMaterial(
+        id = "soft_touch_300",
+        name = "Soft Touch",
+        thickness = "300g",
+        description = "Baxmal his beruvchi sirt, UV lak uchun asos.",
+        additionalPrice = 700
+    )
+
+    val softTouch350 = ProductMaterial(
+        id = "soft_touch_350",
+        name = "Soft Touch",
+        thickness = "350g",
+        description = "Qalinroq Soft Touch, premium vizitkalar uchun.",
+        additionalPrice = 900
+    )
+
+    /** UV lakka ruxsat etilgan qog'ozlar. */
+    val softTouchIds = setOf(softTouch300.id, softTouch350.id)
+
     // Banner
     val banner = ProductMaterial(
         id = "banner",

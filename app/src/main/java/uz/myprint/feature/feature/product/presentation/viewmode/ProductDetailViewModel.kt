@@ -7,8 +7,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import uz.myprint.feature.feature.product.domain.model.PrintOptionKind
 import uz.myprint.feature.feature.product.domain.model.Product
 import uz.myprint.feature.feature.product.domain.model.ProductCategory
+import uz.myprint.feature.feature.product.domain.model.isAvailableFor
 import uz.myprint.feature.feature.product.domain.model.usesSizeBreakdown
 import uz.myprint.feature.feature.product.domain.usecase.GetProductByIdUseCase
 import uz.myprint.feature.feature.product.domain.usecase.GetProductsByCategoryUseCase
@@ -24,9 +26,9 @@ class ProductDetailViewModel(
     private val getProductsByCategoryUseCase: GetProductsByCategoryUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(_root_ide_package_.uz.myprint.feature.feature.product.presentation.viewmode.ProductDetailUiState())
+    private val _uiState = MutableStateFlow(ProductDetailUiState())
 
-    val uiState: StateFlow<uz.myprint.feature.feature.product.presentation.viewmode.ProductDetailUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<ProductDetailUiState> = _uiState.asStateFlow()
 
     fun loadProduct(id: String) {
 
@@ -81,8 +83,13 @@ class ProductDetailViewModel(
                         selectedMaterial = product.materials
                             .let { list -> list.firstOrNull { it.isDefault } ?: list.firstOrNull() },
 
+                        // Faqat taraf variantlari orasidan. UV lak va
+                        // laminatsiya bu yerga tushmasligi kerak.
                         selectedPrintType = product.printTypes
+                            .filter { it.kind == PrintOptionKind.SIDE }
                             .let { list -> list.firstOrNull { it.isDefault } ?: list.firstOrNull() },
+
+                        selectedFinishIds = emptySet(),
 
                         selectedSize = if (breakdown) null else defaultSize,
 
@@ -112,15 +119,46 @@ class ProductDetailViewModel(
         }
     }
 
-    fun onEvent(event: uz.myprint.feature.feature.product.presentation.viewmode.ProductDetailEvent) {
+    fun onEvent(event: ProductDetailEvent) {
 
         when (event) {
 
             is ProductDetailEvent.MaterialSelected ->
-                _uiState.update { it.copy(selectedMaterial = event.material) }
+                _uiState.update { state ->
+                    state.copy(
+                        selectedMaterial = event.material,
+
+                        // Yangi qog'ozda ishlamaydigan qoplamalar olib
+                        // tashlanadi. Aks holda mavjud bo'lmagan
+                        // konfiguratsiya buyurtmaga ketardi.
+                        selectedFinishIds = state.selectedFinishIds
+                            .filterTo(mutableSetOf()) { id ->
+                                state.finishOptions
+                                    .firstOrNull { it.id == id }
+                                    ?.isAvailableFor(event.material) == true
+                            }
+                    )
+                }
 
             is ProductDetailEvent.PrintTypeSelected ->
                 _uiState.update { it.copy(selectedPrintType = event.printType) }
+
+            is ProductDetailEvent.FinishToggled ->
+                _uiState.update { state ->
+
+                    // Mavjud bo'lmagan variant bosilsa e'tiborsiz qoldiriladi.
+                    if (!event.finish.isAvailableFor(state.selectedMaterial)) {
+                        return@update state
+                    }
+
+                    val next = state.selectedFinishIds.toMutableSet()
+
+                    if (!next.add(event.finish.id)) {
+                        next.remove(event.finish.id)
+                    }
+
+                    state.copy(selectedFinishIds = next)
+                }
 
             is ProductDetailEvent.SizeSelected ->
                 _uiState.update { it.copy(selectedSize = event.size) }

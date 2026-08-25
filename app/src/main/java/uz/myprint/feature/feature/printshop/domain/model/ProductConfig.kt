@@ -23,6 +23,9 @@ data class ProductConfig(
 
     val printType: ProductPrintType? = null,
 
+    /** Laminatsiya, UV lak va boshqa qo'shimchalar. */
+    val finishes: List<ProductPrintType> = emptyList(),
+
     val lines: List<ConfigLine> = emptyList(),
 
     val isRush: Boolean = false,
@@ -42,12 +45,36 @@ data class ProductConfig(
     val size: ProductSize?
         get() = lines.firstOrNull()?.size
 
-    /** Material va bosma turi uchun qo'shimcha, o'lchamsiz. */
+    /** Material, bosma turi va qo'shimchalar uchun narx, o'lchamsiz. */
     val optionsPricePerUnit: Long
         get() = (material?.additionalPrice ?: 0L) +
-                (printType?.additionalPrice ?: 0L)
+                (printType?.additionalPrice ?: 0L) +
+                finishes.sumOf { it.additionalPrice }
 
     companion object {
+
+        /** Bo'sh yo'l bo'lagi marshrutni buzadi, shuning uchun belgi. */
+        const val NO_FINISHES = "-"
+
+        /** Navigatsiya argumenti uchun: "laminate,uv_print". */
+        fun encodeFinishes(finishes: Collection<String>): String =
+            finishes
+                .filter { it.isNotBlank() }
+                .joinToString(",")
+                .ifBlank { NO_FINISHES }
+
+        /** "laminate,uv_print" -> mahsulotdagi obyektlar. */
+        fun decodeFinishes(
+            encoded: String,
+            available: List<ProductPrintType>
+        ): List<ProductPrintType> {
+
+            if (encoded.isBlank() || encoded == NO_FINISHES) return emptyList()
+
+            val ids = encoded.split(",").map { it.trim() }.toSet()
+
+            return available.filter { it.id in ids }
+        }
 
         /**
          * Navigatsiya argumenti uchun: "m:10,l:15,xl:5".

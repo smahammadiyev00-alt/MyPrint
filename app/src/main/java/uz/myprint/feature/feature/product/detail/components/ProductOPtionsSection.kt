@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import uz.myprint.core.designsystem.theme.MyPrintColors
+import uz.myprint.feature.feature.product.domain.model.PrintOptionKind
 import uz.myprint.feature.feature.product.domain.model.Product
 import uz.myprint.feature.feature.product.domain.model.ProductCategory
 import uz.myprint.feature.feature.product.domain.model.ProductMaterial
@@ -46,6 +47,7 @@ import uz.myprint.feature.feature.product.domain.model.SizeUnit
 import uz.myprint.feature.feature.product.domain.model.allowsCustomSize
 import uz.myprint.feature.feature.product.domain.model.areaSquareMeters
 import uz.myprint.feature.feature.product.domain.model.customProductSize
+import uz.myprint.feature.feature.product.domain.model.isAvailableFor
 import uz.myprint.feature.feature.product.domain.model.isCustom
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -54,9 +56,11 @@ fun ProductOptionsSection(
     product: Product,
     selectedMaterial: ProductMaterial?,
     selectedPrintType: ProductPrintType?,
+    selectedFinishIds: Set<String>,
     selectedSize: ProductSize?,
     onMaterialSelected: (ProductMaterial) -> Unit,
     onPrintTypeSelected: (ProductPrintType) -> Unit,
+    onFinishToggled: (ProductPrintType) -> Unit,
     onSizeSelected: (ProductSize) -> Unit,
     modifier: Modifier = Modifier,
 
@@ -77,7 +81,11 @@ fun ProductOptionsSection(
             Spacer(modifier = Modifier.height(20.dp))
         }
 
-        if (product.printTypes.isNotEmpty()) {
+        val sides = product.printTypes.filter { it.kind == PrintOptionKind.SIDE }
+
+        val finishes = product.printTypes.filter { it.kind == PrintOptionKind.FINISH }
+
+        if (sides.isNotEmpty()) {
 
             GroupTitle("Bosma turi")
 
@@ -87,15 +95,27 @@ fun ProductOptionsSection(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
 
-                product.printTypes.forEach { printType ->
+                sides.forEach { side ->
 
                     OptionChip(
-                        label = printType.name,
-                        isSelected = printType.id == selectedPrintType?.id,
-                        onClick = { onPrintTypeSelected(printType) }
+                        label = side.name,
+                        isSelected = side.id == selectedPrintType?.id,
+                        onClick = { onPrintTypeSelected(side) }
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        if (finishes.isNotEmpty()) {
+
+            FinishSection(
+                finishes = finishes,
+                selectedMaterial = selectedMaterial,
+                selectedFinishIds = selectedFinishIds,
+                onFinishToggled = onFinishToggled
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
         }
@@ -106,6 +126,63 @@ fun ProductOptionsSection(
                 product = product,
                 selectedSize = selectedSize,
                 onSizeSelected = onSizeSelected
+            )
+        }
+    }
+}
+
+/**
+ * Laminatsiya va UV lak — tarafdan mustaqil qo'shimchalar, shuning
+ * uchun bir nechtasi birga tanlanadi.
+ *
+ * Mos kelmaydigan variant yashirilmaydi, o'chirilgan holda qoladi:
+ * shunda mijoz bunday imkoniyat borligini va uni qanday olishni
+ * ko'radi.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FinishSection(
+    finishes: List<ProductPrintType>,
+    selectedMaterial: ProductMaterial?,
+    selectedFinishIds: Set<String>,
+    onFinishToggled: (ProductPrintType) -> Unit
+) {
+
+    GroupTitle("Qo'shimcha")
+
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+
+        finishes.forEach { finish ->
+
+            OptionChip(
+                label = finish.name,
+                isSelected = finish.id in selectedFinishIds,
+                enabled = finish.isAvailableFor(selectedMaterial),
+                onClick = { onFinishToggled(finish) }
+            )
+        }
+    }
+
+    // O'chirilgan variantlarning sababi. Bir nechta bo'lsa ham
+    // har biri alohida qatorda chiqadi.
+    val blocked = finishes.filter {
+        !it.isAvailableFor(selectedMaterial) && it.unavailableHint.isNotBlank()
+    }
+
+    if (blocked.isNotEmpty()) {
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        blocked.forEach { finish ->
+
+            Text(
+                text = "${finish.name} — ${finish.unavailableHint}",
+                fontSize = 12.sp,
+                color = MyPrintColors.TextSecondary
             )
         }
     }
@@ -480,31 +557,46 @@ private fun GroupTitle(text: String) {
 private fun OptionChip(
     label: String,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
+
+    val background = when {
+        !enabled -> MyPrintColors.Background
+        isSelected -> MyPrintColors.Primary
+        else -> MyPrintColors.Surface
+    }
+
+    val borderColor = when {
+        !enabled -> MyPrintColors.Border
+        isSelected -> MyPrintColors.Primary
+        else -> MyPrintColors.Border
+    }
+
+    val textColor = when {
+        !enabled -> MyPrintColors.IconSecondary
+        isSelected -> MyPrintColors.Surface
+        else -> MyPrintColors.TextSecondary
+    }
 
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(
-                if (isSelected) MyPrintColors.Primary
-                else MyPrintColors.Surface
-            )
+            .background(background)
             .border(
                 width = 1.dp,
-                color = if (isSelected) MyPrintColors.Primary
-                else MyPrintColors.Border,
+                color = borderColor,
                 shape = RoundedCornerShape(10.dp)
             )
-            .clickable { onClick() }
+            .clickable(enabled = enabled) { onClick() }
             .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
 
         Text(
             text = label,
-            color = if (isSelected) MyPrintColors.Surface
-            else MyPrintColors.TextSecondary,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            color = textColor,
+            fontWeight = if (isSelected && enabled) FontWeight.Bold
+            else FontWeight.Normal
         )
     }
 }

@@ -1,33 +1,42 @@
 package uz.myprint.feature.feature.product.data.dummy
 
+import uz.myprint.feature.feature.product.domain.model.PrintOptionKind
 import uz.myprint.feature.feature.product.domain.model.ProductPrintType
 
 object PrintTypeDummyData {
 
     // Business Card
+    // Taraf — bir-birini istisno qiladi.
     val singleSide = ProductPrintType(
         id = "single_side",
-        name = "Single Side",
-        description = "Front side printing",
+        name = "1 taraf",
+        description = "Faqat old tomoni bosiladi",
+        kind = PrintOptionKind.SIDE,
         isDefault = true
     )
 
     val doubleSide = ProductPrintType(
         id = "double_side",
-        name = "Double Side",
-        description = "Front and back printing"
+        name = "2 taraf",
+        description = "Old va orqa tomoni bosiladi",
+        kind = PrintOptionKind.SIDE
     )
 
+    // Qo'shimcha qoplamalar — tarafdan mustaqil, birga tanlanadi.
     val uvPrint = ProductPrintType(
         id = "uv_print",
         name = "UV Print",
-        description = "Premium UV printing"
+        description = "Tanlangan joyga relefli UV lak",
+        kind = PrintOptionKind.FINISH,
+        allowedMaterialIds = MaterialDummyData.softTouchIds,
+        unavailableHint = "Faqat Soft Touch qog'ozida"
     )
 
     val laminate = ProductPrintType(
         id = "laminate",
         name = "Lamination",
-        description = "Glossy or matte lamination"
+        description = "Glyansli yoki matoviy laminatsiya",
+        kind = PrintOptionKind.FINISH
     )
 
     // Banner

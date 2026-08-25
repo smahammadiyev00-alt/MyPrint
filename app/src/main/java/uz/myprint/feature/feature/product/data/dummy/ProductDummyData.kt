@@ -28,7 +28,9 @@ object ProductDummyData {
                 MaterialDummyData.matte160,
                 MaterialDummyData.matte200,
                 MaterialDummyData.matte250,
-                MaterialDummyData.matte300
+                MaterialDummyData.matte300,
+                MaterialDummyData.softTouch300,
+                MaterialDummyData.softTouch350
             ),
 
             printTypes = listOf(

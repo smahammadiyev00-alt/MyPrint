@@ -37,16 +37,18 @@ sealed class Screen(val route: String) {
 
     data object SpecialOffers : Screen("special_offers")
     data object PrintShopSelection : Screen(
-        "printshop/{productId}/{materialId}/{printTypeId}/{lines}"
+        "printshop/{productId}/{materialId}/{printTypeId}/{finishIds}/{lines}"
     ) {
 
+        /** finishIds — "laminate,uv_print" yoki bo'sh bo'lsa "-". */
         fun createRoute(
             productId: String,
             materialId: String,
             printTypeId: String,
+            finishIds: String,
             lines: String
         ): String {
-            return "printshop/$productId/$materialId/$printTypeId/$lines"
+            return "printshop/$productId/$materialId/$printTypeId/$finishIds/$lines"
         }
     }
 }

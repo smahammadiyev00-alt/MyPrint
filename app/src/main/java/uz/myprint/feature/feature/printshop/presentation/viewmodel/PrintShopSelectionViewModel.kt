@@ -44,6 +44,7 @@ class PrintShopSelectionViewModel(
         productId: String,
         materialId: String,
         printTypeId: String,
+        finishIds: String,
         lines: String
     ) {
 
@@ -72,6 +73,7 @@ class PrintShopSelectionViewModel(
                     category = product.category,
                     material = product.materials.firstOrNull { it.id == materialId },
                     printType = product.printTypes.firstOrNull { it.id == printTypeId },
+                    finishes = ProductConfig.decodeFinishes(finishIds, product.printTypes),
                     lines = ProductConfig.decodeLines(lines, product.sizes),
 
                     // Yetkazib berish hozircha doim so'raladi. Keyinchalik
