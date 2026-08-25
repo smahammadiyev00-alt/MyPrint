@@ -35,7 +35,8 @@ fun ProductDetailRoute(
 
     onAiClick: () -> Unit = {},
 
-    onDesignStudioClick: () -> Unit = {},
+    /** Mahsulot va tanlangan o'lcham bilan Dizayn Studio ochiladi. */
+    onDesignStudioClick: (productId: String, sizeId: String) -> Unit = { _, _ -> },
 
     /**
      * lines — "m:10,l:15,xl:5" ko'rinishida kodlangan o'lcham/son juftliklari.
@@ -141,7 +142,12 @@ fun ProductDetailRoute(
 
                     onAiClick = onAiClick,
 
-                    onDesignStudioClick = onDesignStudioClick,
+                    onDesignStudioClick = {
+                        onDesignStudioClick(
+                            product.id,
+                            uiState.selectedSize?.id.orEmpty()
+                        )
+                    },
 
                     onOrderClick = {
 
