@@ -40,6 +40,7 @@ fun ProjectCard(
 
             ProjectCover(
                 imageRes = project.imageRes,
+                coverPath = project.coverPath,
                 badgeText = project.category.displayName(),
                 badgeColor = project.category.badgeColor(),
                 onMenuClick = {

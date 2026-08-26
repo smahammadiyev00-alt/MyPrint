@@ -35,6 +35,21 @@ sealed class Screen(val route: String) {
         }
     }
 
+    data object DesignStudio : Screen(
+        "design_studio/{productId}/{sizeId}"
+    ) {
+
+        /** Bo'sh yo'l bo'lagi marshrutni buzadi, shuning uchun belgi. */
+        const val NO_SIZE = "-"
+
+        fun createRoute(
+            productId: String,
+            sizeId: String
+        ): String {
+            return "design_studio/$productId/${sizeId.ifBlank { NO_SIZE }}"
+        }
+    }
+
     data object SpecialOffers : Screen("special_offers")
     data object PrintShopSelection : Screen(
         "printshop/{productId}/{materialId}/{printTypeId}/{finishIds}/{lines}"

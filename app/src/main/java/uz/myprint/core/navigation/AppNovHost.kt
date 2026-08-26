@@ -14,6 +14,7 @@ import androidx.navigation.navArgument
 import uz.myprint.feature.design.presentation.DesignScreen
 import uz.myprint.feature.feature.SplashScreen.SplashScreen
 import uz.myprint.feature.feature.cart.presentation.route.CartRoute
+import uz.myprint.feature.feature.design.studio.presentation.DesignStudioRoute
 import uz.myprint.feature.feature.home.HomeScreen
 import uz.myprint.feature.feature.printshop.presentation.route.PrintShopSelectionRoute
 import uz.myprint.feature.feature.product.detail.ProductDetailRoute
@@ -158,6 +159,29 @@ fun AppNavHost() {
                         // Hozircha bo'sh
                     },
 
+                    // Saqlangan loyihani bosganda studio o'sha
+                    // maket bilan ochiladi: Route omborni tekshirib,
+                    // yangi maket o'rniga qoralamani yuklaydi.
+                    onProjectClick = { project ->
+
+                        navController.navigate(
+                            Screen.DesignStudio.createRoute(
+                                productId = project.productId,
+                                sizeId = project.sizeId
+                                    .ifBlank { Screen.DesignStudio.NO_SIZE }
+                            )
+                        )
+                    },
+
+                    // Bo'sh holatdagi "Birinchi maketingizni
+                    // yarating" kartasi mahsulotlar ro'yxatiga
+                    // olib boradi.
+                    onCreateProjectClick = {
+                        navController.navigate(
+                            Screen.Product.createRoute("ALL")
+                        )
+                    },
+
                     onSpecialOffersClick = {
                         navController.navigate(Screen.SpecialOffers.route)
                     },
@@ -214,6 +238,11 @@ fun AppNavHost() {
                         onBackClick = {
                             navController.popBackStack()
                         },
+                        onDesignStudioClick = { pid, sizeId ->
+                            navController.navigate(
+                                Screen.DesignStudio.createRoute(pid, sizeId)
+                            )
+                        },
                         onOrderClick = { pid, mid, ptid, finishes, lines ->
                             navController.navigate(
                                 Screen.PrintShopSelection.createRoute(
@@ -245,6 +274,11 @@ fun AppNavHost() {
                     productId = productId,
                     onBackClick = {
                         navController.popBackStack()
+                    },
+                    onDesignStudioClick = { pid, sizeId ->
+                        navController.navigate(
+                            Screen.DesignStudio.createRoute(pid, sizeId)
+                        )
                     },
                     onOrderClick = { pid, mid, ptid, finishes, lines ->
                         navController.navigate(
@@ -284,6 +318,63 @@ fun AppNavHost() {
                     },
                     onAddedToCart = {
                         navController.navigate(Screen.Cart.route)
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.DesignStudio.route,
+                arguments = listOf(
+                    navArgument("productId") { type = NavType.StringType },
+                    navArgument("sizeId") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+
+                val args = backStackEntry.arguments
+
+                DesignStudioRoute(
+
+                    productId = args?.getString("productId").orEmpty(),
+
+                    sizeId = args?.getString("sizeId").orEmpty(),
+
+                    // Orqaga bosilganda ham maket saqlanadi (buni
+                    // DesignStudioRoute o'zi bajaradi), shuning
+                    // uchun bu yerda faqat ekranni yopish qoladi.
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+
+                    // ✓ tugmasi: maket saqlanadi va foydalanuvchi
+                    // bosh sahifadagi "Loyihalaringiz" ro'yxatiga
+                    // qaytadi.
+                    //
+                    // popBackStack ishlatiladi, navigate emas:
+                    // shunda studio va mahsulot ekrani stekdan
+                    // olib tashlanadi. Aks holda foydalanuvchi
+                    // orqaga bosganda yana tahrirlash ekraniga
+                    // tushib qolardi — bu chalkash bo'lardi,
+                    // chunki u ishini tugatgan edi.
+                    //
+                    // Home stekda topilmasa (masalan chuqur
+                    // havola orqali kirilgan bo'lsa) odatdagi
+                    // navigate ishlaydi.
+                    onDoneClick = {
+
+                        val returned = navController.popBackStack(
+                            route = Screen.Home.route,
+                            inclusive = false
+                        )
+
+                        if (!returned) {
+
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Home.route) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
+                        }
                     }
                 )
             }

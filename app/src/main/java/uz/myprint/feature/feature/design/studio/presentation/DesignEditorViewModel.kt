@@ -3,25 +3,45 @@ package uz.myprint.feature.feature.design.studio.presentation
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import uz.myprint.feature.feature.design.studio.data.DesignProjectStore
+import uz.myprint.feature.feature.design.studio.data.SavedProject
+import uz.myprint.feature.feature.product.domain.model.ProductCategory
 import uz.myprint.feature.feature.design.studio.domain.DesignDocument
 import uz.myprint.feature.feature.design.studio.domain.DesignLayer
 import uz.myprint.feature.feature.design.studio.domain.LayerTransform
+import uz.myprint.feature.feature.design.studio.domain.ShapeLayer
+import uz.myprint.feature.feature.design.studio.domain.TextLayer
 import java.util.UUID
 
-/** Tarixda saqlanadigan eng ko'p qadam. */
 private const val HISTORY_LIMIT = 60
 
-/**
- * Undo/redo butun hujjatning nusxasini saqlash orqali ishlaydi.
- *
- * Har bir amal uchun alohida teskari amal yozish (Command pattern)
- * xotirani tejaydi, lekin bitta unutilgan teskari amal tarixni
- * jimgina buzadi va buni topish qiyin. Hujjat yengil — faqat
- * sonlar va matn, bitmap yo'q — shuning uchun nusxa arzon.
- */
+/** Avtosaqlashdan oldingi jimlik. */
+private const val AUTO_SAVE_DELAY_MS = 2_000L
+
 class DesignEditorViewModel(
-    initialDocument: DesignDocument
+    initialDocument: DesignDocument,
+
+    /**
+     * null bo'lishi mumkin — Preview va testlar uchun. Shunda
+     * saqlash amallari jimgina o'tkazib yuboriladi.
+     */
+    private val store: DesignProjectStore? = null,
+
+    private val projectTitle: String = "Nomsiz loyiha",
+
+    private val productId: String = "",
+
+    private val sizeId: String = "",
+
+    private val category: ProductCategory = ProductCategory.OTHER
+
 ) : ViewModel() {
 
     var document by mutableStateOf(initialDocument)
@@ -30,12 +50,55 @@ class DesignEditorViewModel(
     var selectedLayerId by mutableStateOf<String?>(null)
         private set
 
-    /** Kanvas masshtabi, foydalanuvchi barmoq bilan o'zgartiradi. */
     var zoom by mutableStateOf(1f)
         private set
 
-    var pan by mutableStateOf(androidx.compose.ui.geometry.Offset.Zero)
+    var pan by mutableStateOf(Offset.Zero)
         private set
+
+    // ----- YANGI: cho'zish rejimi -----
+
+    /**
+     * Proporsiya qulfi.
+     *
+     * Default'da O'CHIQ. Ilgari burchak nuqtasi doim proporsional
+     * ishlardi va buni o'chirishning iloji yo'q edi — asosiy shikoyat
+     * shundan kelib chiqqan. Endi bu foydalanuvchi qarori.
+     *
+     * Yodda tuting: rasm qatlami uchun qulfni yoqib qo'ygan ma'qul,
+     * aks holda foto cho'zilib ketadi. Buni UI o'zi taklif qiladi.
+     */
+    var aspectLocked by mutableStateOf(false)
+        private set
+
+    /** Magnit — yo'riqchilarga va boshqa elementlarga yopishish. */
+    var snapEnabled by mutableStateOf(true)
+        private set
+
+    /** Hozir ko'rsatilayotgan pushti chiziqlar. Faqat harakat vaqtida. */
+    var snapLines by mutableStateOf<List<SnapLine>>(emptyList())
+        private set
+
+    /** Sloylar paneli ochiqmi — endi bu doimiy holat, dialog emas. */
+    var layersPanelOpen by mutableStateOf(false)
+        private set
+
+    /**
+     * Uzun bosishda ochiladigan menyu qaysi qatlam uchun.
+     *
+     * null — menyu yopiq.
+     */
+    var contextMenuLayerId by mutableStateOf<String?>(null)
+        private set
+
+    /** Oxirgi muvaffaqiyatli saqlash vaqti. */
+    var savedAtMillis by mutableStateOf<Long?>(null)
+        private set
+
+    var isSaving by mutableStateOf(false)
+        private set
+
+    private var autoSaveJob: Job? = null
 
     private val undoStack = ArrayDeque<DesignDocument>()
 
@@ -48,49 +111,201 @@ class DesignEditorViewModel(
     val selectedLayer: DesignLayer?
         get() = selectedLayerId?.let { document.layerById(it) }
 
-    // ----- tanlash -----
+    /**
+     * Tanlangan BIRLIK — bitta qatlam yoki butun guruh.
+     *
+     * Guruhdagi elementni bosgan foydalanuvchi butun guruhni
+     * tanlagan bo'ladi, shuning uchun ramka ham, cho'zish
+     * nuqtalari ham guruh chegarasi bo'yicha chiziladi.
+     */
+    val selectionIds: Set<String>
+        get() = selectedLayerId
+            ?.let { document.selectionUnit(it) }
+            ?: emptySet()
+
+    /** Ramka va nuqtalar shu to'rtburchak bo'yicha chiziladi. */
+    val selectionTransform: LayerTransform?
+        get() = document.boundsOf(selectionIds)
+
+    /** Guruh tanlanganmi. */
+    val isGroupSelected: Boolean
+        get() = selectionIds.size > 1
+
+    /** Guruh qulflangan bo'lsa hech biri qimirlamaydi. */
+    val isSelectionLocked: Boolean
+        get() = selectionIds.any { document.layerById(it)?.isLocked == true }
+
+    val selectedText: TextLayer?
+        get() = selectedLayer as? TextLayer
+
+    val selectedShape: ShapeLayer?
+        get() = selectedLayer as? ShapeLayer
+
+    // ----- tanlash va kanvas -----
 
     fun select(id: String?) {
         selectedLayerId = id
     }
 
-    // ----- kanvas -----
+    fun toggleAspectLock() {
+        aspectLocked = !aspectLocked
+    }
 
-    fun onCanvasTransform(
-        panChange: androidx.compose.ui.geometry.Offset,
-        zoomChange: Float
-    ) {
+    fun toggleSnap() {
+        snapEnabled = !snapEnabled
+        if (!snapEnabled) snapLines = emptyList()
+    }
+
+    fun showLayersPanel(open: Boolean) {
+        layersPanelOpen = open
+    }
+
+    fun openContextMenu(layerId: String) {
+        contextMenuLayerId = layerId
+    }
+
+    fun closeContextMenu() {
+        contextMenuLayerId = null
+    }
+
+    // ----- ichiga joylash -----
+
+    /**
+     * Qatlamni boshqa qatlam ichiga soladi.
+     *
+     * targetId null bo'lsa — ichidan chiqaradi.
+     */
+    fun clipTo(layerId: String, targetId: String?) {
+
+        pushHistory()
+
+        document = document.clipLayer(layerId, targetId)
+
+        selectedLayerId = layerId
+    }
+
+    /** Berilgan qatlamni qaysi qatlamlar ichiga solish mumkin. */
+    fun clipTargetsFor(layerId: String) = document.clipTargetsFor(layerId)
+
+    fun onCanvasTransform(panChange: Offset, zoomChange: Float) {
         zoom = (zoom * zoomChange).coerceIn(0.25f, 8f)
         pan += panChange
     }
 
     fun resetView() {
         zoom = 1f
-        pan = androidx.compose.ui.geometry.Offset.Zero
+        pan = Offset.Zero
     }
 
-    // ----- qatlam o'zgarishlari -----
+    // ----- uzluksiz harakat -----
 
     /**
-     * Uzluksiz harakat (surish, cho'zish) uchun. Tarixga yozmaydi —
-     * aks holda bitta surishdan o'nlab qadam paydo bo'lardi.
-     * Harakat tugagach commit() chaqiriladi.
+     * Barmoq harakati davomida chaqiriladi — tarixga yozmaydi.
+     *
+     * O'zgarish TANLANGAN BIRLIKKA qo'llanadi: guruh bo'lsa hamma
+     * a'zoga, nishon bo'lsa ichiga qirqilganlarga ham. Shuning
+     * uchun bu yerda alohida shart-sharoit yo'q — hammasini
+     * document.transformLayers hal qiladi.
      */
     fun transformSelectedLive(block: (LayerTransform) -> LayerTransform) {
 
-        val layer = selectedLayer ?: return
+        if (isSelectionLocked) return
 
-        if (layer.isLocked) return
+        val ids = selectionIds
 
-        document = document.replaceLayer(
-            layer.withTransform(block(layer.transform))
-        )
+        val before = document.boundsOf(ids) ?: return
+
+        document = document.transformLayers(ids, before, block(before))
     }
 
-    /** Harakat boshlanishidan oldingi holatni tarixga yozadi. */
+    fun updateSnapLines(lines: List<SnapLine>) {
+        snapLines = lines
+    }
+
     fun beginGesture() {
         pushHistory()
     }
+
+    /** Barmoq ko'tarilganda chiziqlar yo'qoladi. */
+    fun endGesture() {
+        snapLines = emptyList()
+    }
+
+    /**
+     * Panelda son kiritib o'lcham berish.
+     *
+     * Barmoq bilan 61.0 mm ni aniq qo'yib bo'lmaydi — poligrafiyada
+     * esa aniq o'lcham kerak bo'ladi. Qulf yoqilgan bo'lsa ikkinchi
+     * o'lcham o'zi hisoblanadi.
+     */
+    fun setSelectedSize(
+        widthMm: Float? = null,
+        heightMm: Float? = null
+    ) {
+
+        if (isSelectionLocked) return
+
+        val ids = selectionIds
+
+        val t = document.boundsOf(ids) ?: return
+
+        pushHistory()
+
+        var w = widthMm ?: t.widthMm
+        var h = heightMm ?: t.heightMm
+
+        if (aspectLocked && t.widthMm > 0f && t.heightMm > 0f) {
+
+            val ratio = t.heightMm / t.widthMm
+
+            if (widthMm != null) h = w * ratio else w = h / ratio
+        }
+
+        document = document.transformLayers(
+            ids = ids,
+            before = t,
+            after = t.resizedAroundCenter(w, h)
+        )
+    }
+
+    /** Maket ichida tekislash: chapga, markazga, o'ngga va h.k. */
+    fun alignSelected(alignment: LayerAlignment) {
+
+        if (isSelectionLocked) return
+
+        val ids = selectionIds
+
+        val t = document.boundsOf(ids) ?: return
+
+        pushHistory()
+
+        val next = when (alignment) {
+
+            LayerAlignment.LEFT -> t.copy(xMm = 0f)
+
+            LayerAlignment.CENTER_X -> t.copy(
+                xMm = (document.widthMm - t.widthMm) / 2f
+            )
+
+            LayerAlignment.RIGHT -> t.copy(
+                xMm = document.widthMm - t.widthMm
+            )
+
+            LayerAlignment.TOP -> t.copy(yMm = 0f)
+
+            LayerAlignment.CENTER_Y -> t.copy(
+                yMm = (document.heightMm - t.heightMm) / 2f
+            )
+
+            LayerAlignment.BOTTOM -> t.copy(
+                yMm = document.heightMm - t.heightMm
+            )
+        }
+
+        document = document.transformLayers(ids, t, next)
+    }
+
+    // ----- qatlamlar -----
 
     fun addLayer(layer: DesignLayer) {
         pushHistory()
@@ -98,9 +313,73 @@ class DesignEditorViewModel(
         selectedLayerId = layer.id
     }
 
-    fun updateLayer(layer: DesignLayer) {
+    fun updateSelected(block: (DesignLayer) -> DesignLayer) {
+
+        val layer = selectedLayer ?: return
+
+        if (layer.isLocked) return
+
         pushHistory()
-        document = document.replaceLayer(layer)
+
+        val updated = block(layer)
+
+        document = document.replaceLayer(updated)
+
+        // Uslub o'zgargan bo'lsa hech narsa tarqalmaydi; joylashuv
+        // o'zgargan bo'lsa (masalan burilish slayderi) — tarqaladi.
+        if (updated.transform != layer.transform) {
+
+            document = document.transformLayers(
+                ids = selectionIds,
+                before = layer.transform,
+                after = updated.transform
+            )
+        }
+    }
+
+    fun updateText(block: (TextLayer) -> TextLayer) {
+
+        val layer = selectedText ?: return
+
+        pushHistory()
+
+        document = document.replaceLayer(block(layer))
+    }
+
+    fun updateShape(block: (ShapeLayer) -> ShapeLayer) {
+
+        val layer = selectedShape ?: return
+
+        pushHistory()
+
+        document = document.replaceLayer(block(layer))
+    }
+
+    fun applyColor(color: Color) {
+
+        when (val layer = selectedLayer) {
+
+            is TextLayer -> updateText { it.copy(color = color) }
+
+            is ShapeLayer -> updateShape { it.copy(fill = color) }
+
+            null -> setBackground(color)
+
+            else -> Unit
+        }
+    }
+
+    fun setBackground(color: Color) {
+        pushHistory()
+        document = document.copy(background = color)
+    }
+
+    fun setOpacity(value: Float) {
+        updateSelected { layer ->
+            layer.withTransform(
+                layer.transform.copy(opacity = value.coerceIn(0.05f, 1f))
+            )
+        }
     }
 
     fun deleteSelected() {
@@ -120,28 +399,42 @@ class DesignEditorViewModel(
 
         pushHistory()
 
-        val copy = layer.withTransform(
-            layer.transform.copy(
-                xMm = layer.transform.xMm + 3f,
-                yMm = layer.transform.yMm + 3f
+        val copy = layer
+            .withTransform(
+                layer.transform.copy(
+                    xMm = layer.transform.xMm + 3f,
+                    yMm = layer.transform.yMm + 3f
+                )
             )
-        ).let { shifted ->
-            when (shifted) {
-                is uz.myprint.feature.feature.design.studio.domain.TextLayer ->
-                    shifted.copy(id = newId())
-
-                is uz.myprint.feature.feature.design.studio.domain.ShapeLayer ->
-                    shifted.copy(id = newId())
-
-                is uz.myprint.feature.feature.design.studio.domain.ImageLayer ->
-                    shifted.copy(id = newId())
-            }
-        }
+            .withId(newId())
 
         document = document.addLayer(copy)
 
         selectedLayerId = copy.id
     }
+
+    // ----- guruhlash -----
+
+    /**
+     * Photoshop'dagi Ctrl+E.
+     *
+     * Tanlangan qatlamni pastdagisi bilan bitta birlikka qo'shadi.
+     */
+    fun mergeDown(layerId: String) {
+        pushHistory()
+        document = document.mergeDown(layerId)
+        selectedLayerId = layerId
+    }
+
+    fun ungroup(layerId: String) {
+        pushHistory()
+        document = document.ungroup(layerId)
+        selectedLayerId = layerId
+    }
+
+    /** Pastda birlashtirish uchun qatlam bormi. */
+    fun canMergeDown(layerId: String): Boolean =
+        document.layers.indexOfFirst { it.id == layerId } > 0
 
     fun bringForward() {
         val id = selectedLayerId ?: return
@@ -155,6 +448,140 @@ class DesignEditorViewModel(
         document = document.sendBackward(id)
     }
 
+    // ----- sloylar paneli -----
+
+    fun selectFromPanel(id: String) {
+        selectedLayerId = id
+    }
+
+    fun moveLayer(id: String, up: Boolean) {
+        pushHistory()
+        document = if (up) document.bringForward(id)
+        else document.sendBackward(id)
+    }
+
+    fun toggleVisibility(id: String) {
+
+        val layer = document.layerById(id) ?: return
+
+        pushHistory()
+
+        document = document.replaceLayer(
+            layer.withVisibility(!layer.isVisible)
+        )
+    }
+
+    fun toggleLock(id: String) {
+
+        val layer = document.layerById(id) ?: return
+
+        pushHistory()
+
+        document = document.replaceLayer(layer.withLock(!layer.isLocked))
+    }
+
+    fun deleteLayer(id: String) {
+
+        pushHistory()
+
+        document = document.removeLayer(id)
+
+        if (selectedLayerId == id) {
+            selectedLayerId = null
+        }
+    }
+
+    fun duplicateLayer(id: String) {
+
+        val layer = document.layerById(id) ?: return
+
+        pushHistory()
+
+        val copy = layer
+            .withTransform(
+                layer.transform.copy(
+                    xMm = layer.transform.xMm + 3f,
+                    yMm = layer.transform.yMm + 3f
+                )
+            )
+            .withId(newId())
+
+        document = document.addLayer(copy)
+
+        selectedLayerId = copy.id
+    }
+
+    // ----- saqlash -----
+
+    /**
+     * Avtosaqlash.
+     *
+     * Har o'zgarishda emas, TO'XTAGANDAN keyin saqlanadi. Barmoq
+     * bilan surayotganda soniyasiga o'nlab o'zgarish bo'ladi va
+     * har birida faylga yozish qurilmani qizdiradi, batareyani
+     * yeydi. Ikki soniya jimlikdan keyin bir marta yozish yetarli.
+     *
+     * Muqova bu yerda chizilmaydi — u qimmat amal (butun maketni
+     * bitmapga chizish). Muqova faqat foydalanuvchi studiodan
+     * chiqqanda yangilanadi.
+     */
+    private fun scheduleAutoSave() {
+
+        val store = store ?: return
+
+        autoSaveJob?.cancel()
+
+        autoSaveJob = viewModelScope.launch {
+            delay(AUTO_SAVE_DELAY_MS)
+            persist(store, withCover = false)
+        }
+    }
+
+    /**
+     * Darhol saqlash — ✓ tugmasi va orqaga chiqish uchun.
+     *
+     * Muqova bilan birga, chunki bosh sahifadagi ro'yxat aynan
+     * shu rasmni ko'rsatadi.
+     */
+    suspend fun saveNow(): SavedProject? {
+
+        val store = store ?: return null
+
+        autoSaveJob?.cancel()
+
+        return persist(store, withCover = true)
+    }
+
+    private suspend fun persist(
+        store: DesignProjectStore,
+        withCover: Boolean
+    ): SavedProject? {
+
+        isSaving = true
+
+        return try {
+
+            store.save(
+                document = document,
+                title = projectTitle,
+                productId = productId,
+                sizeId = sizeId,
+                category = category,
+                withCover = withCover
+            ).also { savedAtMillis = it.updatedAtMillis }
+
+        } catch (error: Exception) {
+
+            // Saqlash muvaffaqiyatsiz bo'lsa ish to'xtamasligi
+            // kerak — foydalanuvchi tahrirlashda davom etsin,
+            // keyingi avtosaqlash yana urinib ko'radi.
+            null
+
+        } finally {
+            isSaving = false
+        }
+    }
+
     // ----- tarix -----
 
     private fun pushHistory() {
@@ -166,6 +593,11 @@ class DesignEditorViewModel(
         }
 
         redoStack.clear()
+
+        // Yagona ulanish nuqtasi: maketni o'zgartiradigan HAMMA
+        // amal shu funksiyadan o'tadi, shuning uchun avtosaqlashni
+        // boshqa joyga qo'shish shart emas.
+        scheduleAutoSave()
     }
 
     fun undo() {
@@ -176,8 +608,9 @@ class DesignEditorViewModel(
 
         document = previous
 
-        // Tanlangan qatlam o'chirilgan bo'lishi mumkin.
-        if (selectedLayerId != null && document.layerById(selectedLayerId!!) == null) {
+        val id = selectedLayerId
+
+        if (id != null && document.layerById(id) == null) {
             selectedLayerId = null
         }
     }
@@ -195,4 +628,8 @@ class DesignEditorViewModel(
 
         fun newId(): String = UUID.randomUUID().toString()
     }
+}
+
+enum class LayerAlignment {
+    LEFT, CENTER_X, RIGHT, TOP, CENTER_Y, BOTTOM
 }

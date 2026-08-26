@@ -22,6 +22,7 @@ import uz.myprint.feature.feature.home.components.HomeProjectSection
 import uz.myprint.feature.feature.home.components.HomeSearchSection
 import uz.myprint.feature.feature.home.components.SpecialOfferSection
 import uz.myprint.feature.feature.product.domain.model.Product
+import uz.myprint.feature.feature.project.model.Project
 import uz.myprint.feature.feature.promotion.PromotionSection
 import uz.myprint.feature.feature.promotion.data.samplePartners
 
@@ -36,7 +37,17 @@ fun HomeScreen(
 
     onSpecialOffersClick: () -> Unit = {},
 
-    onOfferClick: (String) -> Unit = {}
+    onOfferClick: (String) -> Unit = {},
+
+    /**
+     * Saqlangan loyihani bosish — studio o'sha maket bilan ochiladi.
+     */
+    onProjectClick: (Project) -> Unit = {},
+
+    /**
+     * Hali loyiha yo'q holatdagi karta va "Barchasi" tugmasi.
+     */
+    onCreateProjectClick: () -> Unit = {}
 
 ) {
 
@@ -91,7 +102,23 @@ fun HomeScreen(
                 modifier = Modifier.height(20.dp)
             )
 
-            HomeProjectSection()
+            // Bo'lim endi qattiq yozilgan uchta namuna emas,
+            // haqiqiy saqlangan loyihalarni ko'rsatadi. Ro'yxatni
+            // HomeProjectSection o'zi omborda o'qiydi va ekran
+            // har ko'ringanda yangilaydi.
+            // Uch nuqta menyusi (o'chirish, nusxa olish, nomini
+            // o'zgartirish) bo'limning ICHIDA hal qilinadi: bu
+            // amallar ombor bilan ishlaydi va ro'yxatni o'zi
+            // yangilaydi, navigatsiyaga chiqarish shart emas.
+            HomeProjectSection(
+                onProjectClick = onProjectClick,
+                onCreateClick = onCreateProjectClick,
+
+                // "Barchasi" ekrani hali yo'q — hozircha mahsulot
+                // tanlashga olib boradi. Bosilganda hech narsa
+                // bo'lmasligidan ko'ra shu yaxshiroq.
+                onSeeAllClick = onCreateProjectClick
+            )
 
             Spacer(
                 modifier = Modifier.height(24.dp)
@@ -99,7 +126,7 @@ fun HomeScreen(
 
             DesignerSection(
                 onSeeAllClick = {
-                    // Keyingi bosqichda Designer navigation qo‘shamiz
+                    // Keyingi bosqichda Designer navigation qo'shamiz
                 },
                 onPortfolioClick = onPortfolioClick
             )
