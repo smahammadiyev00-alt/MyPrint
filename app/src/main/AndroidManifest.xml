@@ -24,6 +24,31 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            Maketni boshqa ilovalarga (Telegram, pochta) yuborish
+            uchun kerak. Android 7 dan boshlab file:// havolalarni
+            ilovalar orasida uzatish taqiqlangan — fayl content://
+            havolasi orqali, vaqtinchalik ruxsat bilan beriladi.
+
+            authorities qiymati DesignShare.kt dagi
+            "${applicationId}.fileprovider" bilan aynan mos
+            kelishi shart, aks holda ulashishda ilova qulaydi.
+
+            exported="false" — provayderni faqat biz beradigan
+            aniq ruxsat orqali ishlatish mumkin, boshqa ilova
+            o'zicha kira olmaydi.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
     </application>
 
 </manifest>

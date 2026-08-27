@@ -1,5 +1,6 @@
 package uz.myprint.feature.feature.design.studio.presentation
 
+import android.graphics.Typeface
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -7,10 +8,12 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -19,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Constraints
 import uz.myprint.feature.feature.design.studio.domain.DesignDocument
+import uz.myprint.feature.feature.design.studio.domain.DesignFont
 import uz.myprint.feature.feature.design.studio.domain.DesignLayer
 import uz.myprint.feature.feature.design.studio.domain.ImageLayer
 import uz.myprint.feature.feature.design.studio.domain.ShapeKind
@@ -37,7 +41,27 @@ import androidx.compose.ui.text.style.TextAlign as ComposeTextAlign
 fun DrawScope.drawDocument(
     document: DesignDocument,
     geometry: CanvasGeometry,
-    textMeasurer: TextMeasurer
+    textMeasurer: TextMeasurer,
+
+    /**
+     * Matn harflar KONTURI sifatida chizilsinmi.
+     *
+     * PDF eksportida majburiy. Sabab: Android'ning PDF chizuvchisi
+     * (Skia) matnni Type3 shrift qilib yozadi va uning FontMatrix
+     * qiymatida y o'qi manfiy bo'ladi. PDF standarti buni ruxsat
+     * beradi, Chrome, Acrobat va Photoshop to'g'ri o'qiydi —
+     * lekin CorelDRAW noto'g'ri qayta ishlaydi va harflarni ulkan
+     * qilib, ag'darib chizadi. Corel esa O'zbekistondagi
+     * bosmaxonalarning asosiy dasturi.
+     *
+     * Kontur chizilganda PDF ichida shrift obyekti UMUMAN
+     * bo'lmaydi — na Type3, na boshqasi. Corel oddiy vektor
+     * shakllarni ko'radi va ularni hech qachon xato ochmaydi.
+     *
+     * Ekranda esa odatdagi matn chizish qoladi: u tezroq va
+     * ekranda Type3 muammosi yo'q.
+     */
+    textAsPaths: Boolean = false
 ) {
 
     // Fon bleed maydonini ham qoplaydi, aks holda kesishda
@@ -59,14 +83,14 @@ fun DrawScope.drawDocument(
         .filter { it.isVisible && it.clipToId == null }
         .forEach { layer ->
 
-            drawLayer(layer, geometry, textMeasurer)
+            drawLayer(layer, geometry, textMeasurer, textAsPaths)
 
             val children = document
                 .clippedChildren(layer.id)
                 .filter { it.isVisible }
 
             if (children.isNotEmpty()) {
-                drawClipped(layer, children, geometry, textMeasurer)
+                drawClipped(layer, children, geometry, textMeasurer, textAsPaths)
             }
         }
 }
@@ -89,7 +113,8 @@ private fun DrawScope.drawClipped(
     target: DesignLayer,
     children: List<DesignLayer>,
     geometry: CanvasGeometry,
-    textMeasurer: TextMeasurer
+    textMeasurer: TextMeasurer,
+    textAsPaths: Boolean
 ) {
 
     val topLeft = geometry.layerTopLeftPx(target)
@@ -139,7 +164,7 @@ private fun DrawScope.drawClipped(
             rotate(degrees = -rotation, pivot = center) {
 
                 children.forEach { child ->
-                    drawLayer(child, geometry, textMeasurer)
+                    drawLayer(child, geometry, textMeasurer, textAsPaths)
                 }
             }
         }
@@ -149,7 +174,8 @@ private fun DrawScope.drawClipped(
 private fun DrawScope.drawLayer(
     layer: DesignLayer,
     geometry: CanvasGeometry,
-    textMeasurer: TextMeasurer
+    textMeasurer: TextMeasurer,
+    textAsPaths: Boolean
 ) {
 
     val topLeft = geometry.layerTopLeftPx(layer)
@@ -165,7 +191,7 @@ private fun DrawScope.drawLayer(
             is ShapeLayer -> drawShapeLayer(layer, topLeft, size, geometry)
 
             is TextLayer -> drawTextLayer(
-                layer, topLeft, size, geometry, textMeasurer
+                layer, topLeft, size, geometry, textMeasurer, textAsPaths
             )
 
             // Rasm qatlami bitmap yuklashni talab qiladi, u alohida
@@ -289,7 +315,8 @@ private fun DrawScope.drawTextLayer(
     topLeft: Offset,
     size: Size,
     geometry: CanvasGeometry,
-    textMeasurer: TextMeasurer
+    textMeasurer: TextMeasurer,
+    textAsPaths: Boolean
 ) {
 
     val result = textMeasurer.measure(
@@ -306,11 +333,143 @@ private fun DrawScope.drawTextLayer(
     val offsetY = ((size.height - result.size.height) / 2f)
         .coerceAtLeast(0f)
 
+    val origin = Offset(topLeft.x, topLeft.y + offsetY)
+
+    if (textAsPaths) {
+
+        drawTextAsPaths(layer, result, origin, geometry)
+
+        return
+    }
+
     drawText(
         textLayoutResult = result,
-        topLeft = Offset(topLeft.x, topLeft.y + offsetY),
+        topLeft = origin,
         alpha = layer.transform.opacity
     )
+}
+
+/**
+ * Matnni harflar konturi sifatida chizadi.
+ *
+ * MUHIM: joylashuv Compose o'lchagan natijadan olinadi, qaytadan
+ * hisoblanmaydi. Qatorlarga bo'lish, qatorlar oralig'i va
+ * tekislash — bularning hammasi allaqachon TextLayoutResult
+ * ichida bor. Agar ularni qo'lda qayta hisoblasak, ekrandagi
+ * ko'rinish bilan PDF asta-sekin bir-biridan uzoqlashib ketardi,
+ * va bu hozirgi muammodan ancha yomon bo'lardi.
+ *
+ * Ya'ni bu yerda faqat GLIF chizish usuli almashadi, matn
+ * joylashuvi emas.
+ */
+private fun DrawScope.drawTextAsPaths(
+    layer: TextLayer,
+    result: TextLayoutResult,
+    origin: Offset,
+    geometry: CanvasGeometry
+) {
+
+    val text = layer.displayText
+
+    if (text.isEmpty()) return
+
+    val fontSizePx = geometry.mmToPx(layer.fontSizeMm)
+
+    val paint = android.graphics.Paint().apply {
+
+        isAntiAlias = true
+
+        textSize = fontSizePx
+
+        typeface = layer.androidTypeface()
+
+        // Android'da harflar oralig'i EM ulushida o'lchanadi,
+        // bizda esa millimetrda. Shrift o'lchamiga bo'linadi.
+        letterSpacing = if (fontSizePx > 0f) {
+            geometry.mmToPx(layer.letterSpacingMm) / fontSizePx
+        } else {
+            0f
+        }
+    }
+
+    val combined = android.graphics.Path()
+
+    for (line in 0 until result.lineCount) {
+
+        val start = result.getLineStart(line)
+
+        val end = result.getLineEnd(line, visibleEnd = true)
+
+        if (end <= start) continue
+
+        val linePath = android.graphics.Path()
+
+        paint.getTextPath(
+            text,
+            start,
+            end,
+            origin.x + result.getLineLeft(line),
+            origin.y + result.getLineBaseline(line),
+            linePath
+        )
+
+        combined.addPath(linePath)
+    }
+
+    drawPath(
+        path = combined.asComposePath(),
+        color = layer.color,
+        alpha = layer.transform.opacity
+    )
+
+    if (!layer.isUnderline) return
+
+    // Tagchiziq shriftga kirmaydi, uni alohida chizish kerak.
+    // Qalinlik shrift o'lchamiga bog'lanadi, aks holda katta
+    // matnda ip kabi ingichka bo'lib qolardi.
+    val thickness = (fontSizePx * 0.06f).coerceAtLeast(0.4f)
+
+    for (line in 0 until result.lineCount) {
+
+        val left = origin.x + result.getLineLeft(line)
+
+        val right = origin.x + result.getLineRight(line)
+
+        val y = origin.y + result.getLineBaseline(line) + thickness * 2f
+
+        drawRect(
+            color = layer.color,
+            topLeft = Offset(left, y),
+            size = Size(right - left, thickness),
+            alpha = layer.transform.opacity
+        )
+    }
+}
+
+/**
+ * Compose shrift oilasini Android turiga o'giradi.
+ *
+ * Faqat tizim shriftlari ishlatilgani uchun bu jadval yetarli.
+ * Kelajakda o'z shriftlarimiz qo'shilsa, ular Typeface sifatida
+ * ham yuklanishi kerak bo'ladi.
+ */
+private fun TextLayer.androidTypeface(): Typeface {
+
+    val family = when (font) {
+        DesignFont.SANS -> "sans-serif"
+        DesignFont.SERIF -> "serif"
+        DesignFont.MONO -> "monospace"
+        DesignFont.CURSIVE -> "cursive"
+    }
+
+    val style = when {
+        isBold && isItalic -> Typeface.BOLD_ITALIC
+        isBold -> Typeface.BOLD
+        isItalic -> Typeface.ITALIC
+        else -> Typeface.NORMAL
+    }
+
+    return Typeface.create(family, style)
 }
 
 /** Ekran va eksport uchun bir xil uslub. */

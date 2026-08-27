@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.FormatAlignCenter
 import androidx.compose.material.icons.rounded.FormatColorFill
 import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.GridOn
+import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.Height
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Lock
@@ -56,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import uz.myprint.core.designsystem.theme.MyPrintColors
+import uz.myprint.feature.feature.design.studio.data.ShareFormat
 import uz.myprint.feature.feature.design.studio.domain.LayerTransform
 import uz.myprint.feature.feature.design.studio.domain.ShapeKind
 import uz.myprint.feature.feature.design.studio.domain.ShapeLayer
@@ -90,7 +92,8 @@ fun DesignStudioScreen(
     viewModel: DesignEditorViewModel,
     productName: String,
     onBackClick: () -> Unit = {},
-    onDoneClick: () -> Unit = {}
+    onDoneClick: () -> Unit = {},
+    onShare: (ShareFormat) -> Unit = {}
 ) {
 
     val document = viewModel.document
@@ -104,6 +107,8 @@ fun DesignStudioScreen(
     var panel by remember { mutableStateOf<Panel?>(null) }
 
     var editingText by remember { mutableStateOf<String?>(null) }
+
+    var choosingShareFormat by remember { mutableStateOf(false) }
 
     // Tanlov o'zgarganda ochiq panel boshqa turdagi element uchun
     // ma'nosiz bo'lib qolishi mumkin, shuning uchun yopiladi.
@@ -142,6 +147,7 @@ fun DesignStudioScreen(
             snapEnabled = viewModel.snapEnabled,
             onToggleAspect = viewModel::toggleAspectLock,
             onToggleSnap = viewModel::toggleSnap,
+            onShareClick = { choosingShareFormat = true },
             onBackClick = onBackClick,
             onUndo = viewModel::undo,
             onRedo = viewModel::redo,
@@ -228,6 +234,17 @@ fun DesignStudioScreen(
             isLayersOpen = viewModel.layersPanelOpen,
             onLayers = {
                 viewModel.showLayersPanel(!viewModel.layersPanelOpen)
+            }
+        )
+    }
+
+    if (choosingShareFormat) {
+
+        ShareFormatDialog(
+            onDismiss = { choosingShareFormat = false },
+            onPick = { format ->
+                choosingShareFormat = false
+                onShare(format)
             }
         )
     }
@@ -655,6 +672,84 @@ private fun AlignChip(
     )
 }
 
+/**
+ * Format tanlash.
+ *
+ * Ikkalasi ham kerak va ular turli maqsad uchun: PDF bosmaxonaga
+ * ketadi, PNG esa mijozga ko'rsatish uchun. Foydalanuvchi
+ * farqini bilmasligi mumkin, shuning uchun tushuntirish
+ * tugmaning yonida turadi, alohida yordam bo'limida emas.
+ */
+@Composable
+private fun ShareFormatDialog(
+    onDismiss: () -> Unit,
+    onPick: (ShareFormat) -> Unit
+) {
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Maketni yuborish") },
+        text = {
+
+            Column {
+
+                ShareOption(
+                    title = "PDF — bosmaxona uchun",
+                    subtitle = "Matn tiniq chiqadi, o'lcham aniq saqlanadi",
+                    onClick = { onPick(ShareFormat.PDF) }
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                ShareOption(
+                    title = "PNG — ko'rsatish uchun",
+                    subtitle = "Telegramda darhol ochiladi",
+                    onClick = { onPick(ShareFormat.PNG) }
+                )
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Bekor qilish", color = MyPrintColors.TextSecondary)
+            }
+        }
+    )
+}
+
+@Composable
+private fun ShareOption(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MyPrintColors.Background,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+
+        Text(
+            text = title,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MyPrintColors.TextPrimary
+        )
+
+        Text(
+            text = subtitle,
+            fontSize = 12.sp,
+            color = MyPrintColors.TextSecondary
+        )
+    }
+}
+
 @Composable
 private fun TextEditDialog(
     initial: String,
@@ -723,6 +818,7 @@ private fun TopBar(
     snapEnabled: Boolean,
     onToggleAspect: () -> Unit,
     onToggleSnap: () -> Unit,
+    onShareClick: () -> Unit,
     onBackClick: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
@@ -776,6 +872,12 @@ private fun TopBar(
             tint = if (snapEnabled) MyPrintColors.Primary
             else MyPrintColors.IconSecondary,
             onClick = onToggleSnap
+        )
+
+        BarIcon(
+            icon = Icons.Rounded.IosShare,
+            tint = MyPrintColors.TextPrimary,
+            onClick = onShareClick
         )
 
         BarIcon(

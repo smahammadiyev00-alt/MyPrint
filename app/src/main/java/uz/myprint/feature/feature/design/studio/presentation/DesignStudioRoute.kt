@@ -9,10 +9,12 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import uz.myprint.feature.feature.design.studio.data.DesignShare
 import uz.myprint.core.designsystem.theme.MyPrintColors
 import uz.myprint.core.di.AppContainer
 import uz.myprint.core.navigation.Screen
@@ -38,6 +40,8 @@ fun DesignStudioRoute(
 ) {
 
     val store = AppContainer.projectStore
+
+    val context = LocalContext.current
 
     val scope = rememberCoroutineScope()
 
@@ -160,6 +164,43 @@ fun DesignStudioRoute(
             scope.launch {
                 viewModel.saveNow()
                 onDoneClick()
+            }
+        },
+
+        // Ulashishdan oldin saqlanadi: mijoz yuborayotgan fayl
+        // ekranda ko'rgan narsasiga aynan mos bo'lishi kerak.
+        onShare = { format ->
+
+            scope.launch {
+
+                viewModel.saveNow()
+
+                val result = DesignShare.share(
+                    context = context,
+                    document = viewModel.document,
+                    title = args.productName,
+                    format = format
+                )
+
+                // Masshtab ogohlantirishi muvaffaqiyatli holatda
+                // ham chiqadi va uzunroq ko'rsatiladi: "1:10 da
+                // yasaldi" degan xabarni o'qib ulgurmaslik
+                // bosmaxonada 3 metrlik banner 30 sm bo'lib
+                // bosilishiga olib keladi.
+                result.message?.let { message ->
+
+                    android.widget.Toast
+                        .makeText(
+                            context,
+                            message,
+                            if (result.success) {
+                                android.widget.Toast.LENGTH_LONG
+                            } else {
+                                android.widget.Toast.LENGTH_SHORT
+                            }
+                        )
+                        .show()
+                }
             }
         }
     )

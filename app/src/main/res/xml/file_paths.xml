@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    FileProvider uchun ruxsat etilgan papkalar.
+
+    Faqat cache-path ochilgan va bu ataylab shunday: ulashiladigan
+    fayllar vaqtinchalik, ular cacheDir/share ichida yasaladi.
+    filesDir (loyihalar ombori) ochilmaydi — boshqa ilovalarga
+    foydalanuvchining butun maketlar arxiviga yo'l berish kerak
+    emas.
+-->
+<paths>
+
+    <cache-path
+        name="shared_designs"
+        path="share/" />
+
+    <cache-path
+        name="exported_designs"
+        path="export/" />
+
+</paths>
