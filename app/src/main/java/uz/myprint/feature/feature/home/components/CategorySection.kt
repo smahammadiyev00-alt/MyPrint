@@ -21,7 +21,7 @@ import uz.myprint.feature.feature.product.domain.model.ProductCategory
 data class CategoryItem(
     val title: String,
 
-    @DrawableRes
+    @param:DrawableRes
     val iconRes: Int,
 
     val category: ProductCategory

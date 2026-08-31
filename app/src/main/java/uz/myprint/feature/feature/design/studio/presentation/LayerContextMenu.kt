@@ -19,7 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.CallMerge
+import androidx.compose.material.icons.automirrored.rounded.CallMerge
 import androidx.compose.material.icons.rounded.FilterFrames
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
@@ -179,7 +179,7 @@ fun LayerContextMenu(
                 val canMerge = viewModel.canMergeDown(layerId)
 
                 MenuRow(
-                    icon = Icons.Rounded.CallMerge,
+                    icon = Icons.AutoMirrored.Rounded.CallMerge,
                     title = "Pastdagisi bilan birlashtirish",
                     subtitle = if (canMerge) {
                         "Ikkalasi birga suriladi va cho'ziladi"

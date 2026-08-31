@@ -1,6 +1,5 @@
 package uz.myprint.feature.feature.design.studio.presentation
 
-import android.graphics.Typeface
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -8,6 +7,7 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -21,8 +21,10 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import uz.myprint.feature.feature.design.studio.domain.DesignDocument
-import uz.myprint.feature.feature.design.studio.domain.DesignFont
+import uz.myprint.feature.feature.design.studio.data.DesignFonts
 import uz.myprint.feature.feature.design.studio.domain.DesignLayer
 import uz.myprint.feature.feature.design.studio.domain.ImageLayer
 import uz.myprint.feature.feature.design.studio.domain.ShapeKind
@@ -61,7 +63,16 @@ fun DrawScope.drawDocument(
      * Ekranda esa odatdagi matn chizish qoladi: u tezroq va
      * ekranda Type3 muammosi yo'q.
      */
-    textAsPaths: Boolean = false
+    textAsPaths: Boolean = false,
+
+    /**
+     * Yuklangan rasmlar: ImageLayer.sourceUri → bitmap.
+     *
+     * Chizish funksiyasi fayldan o'qimaydi. Sabab: chizish har
+     * kadrda takrorlanadi, diskdan o'qish esa sekin — sakrash
+     * boshlanardi. Yuklashni chaqiruvchi tomon oldindan bajaradi.
+     */
+    images: Map<String, ImageBitmap> = emptyMap()
 ) {
 
     // Fon bleed maydonini ham qoplaydi, aks holda kesishda
@@ -83,14 +94,14 @@ fun DrawScope.drawDocument(
         .filter { it.isVisible && it.clipToId == null }
         .forEach { layer ->
 
-            drawLayer(layer, geometry, textMeasurer, textAsPaths)
+            drawLayer(layer, geometry, textMeasurer, textAsPaths, images)
 
             val children = document
                 .clippedChildren(layer.id)
                 .filter { it.isVisible }
 
             if (children.isNotEmpty()) {
-                drawClipped(layer, children, geometry, textMeasurer, textAsPaths)
+                drawClipped(layer, children, geometry, textMeasurer, textAsPaths, images)
             }
         }
 }
@@ -114,7 +125,8 @@ private fun DrawScope.drawClipped(
     children: List<DesignLayer>,
     geometry: CanvasGeometry,
     textMeasurer: TextMeasurer,
-    textAsPaths: Boolean
+    textAsPaths: Boolean,
+    images: Map<String, ImageBitmap>
 ) {
 
     val topLeft = geometry.layerTopLeftPx(target)
@@ -164,7 +176,7 @@ private fun DrawScope.drawClipped(
             rotate(degrees = -rotation, pivot = center) {
 
                 children.forEach { child ->
-                    drawLayer(child, geometry, textMeasurer, textAsPaths)
+                    drawLayer(child, geometry, textMeasurer, textAsPaths, images)
                 }
             }
         }
@@ -175,7 +187,8 @@ private fun DrawScope.drawLayer(
     layer: DesignLayer,
     geometry: CanvasGeometry,
     textMeasurer: TextMeasurer,
-    textAsPaths: Boolean
+    textAsPaths: Boolean,
+    images: Map<String, ImageBitmap>
 ) {
 
     val topLeft = geometry.layerTopLeftPx(layer)
@@ -194,16 +207,72 @@ private fun DrawScope.drawLayer(
                 layer, topLeft, size, geometry, textMeasurer, textAsPaths
             )
 
-            // Rasm qatlami bitmap yuklashni talab qiladi, u alohida
-            // bosqichda qo'shiladi. Hozircha joyi belgilanadi.
-            is ImageLayer -> drawRect(
-                color = Color(0xFFE5E7EB),
+            is ImageLayer -> drawImageLayer(
+                layer = layer,
+                bitmap = images[layer.sourceUri],
                 topLeft = topLeft,
-                size = size,
-                alpha = layer.transform.opacity
+                size = size
             )
         }
     }
+}
+
+/**
+ * Rasm qatlami.
+ *
+ * Kesish (crop) 0..1 nisbatda saqlanadi, pikselda emas. Shuning
+ * uchun foydalanuvchi rasmni almashtirsa yoki maket boshqa
+ * qurilmada ochilsa ham kesim joyi buzilmaydi.
+ */
+private fun DrawScope.drawImageLayer(
+    layer: ImageLayer,
+    bitmap: ImageBitmap?,
+    topLeft: Offset,
+    size: Size
+) {
+
+    if (bitmap == null) {
+
+        // Rasm hali yuklanmagan yoki fayli yo'qolgan. Bo'sh joy
+        // qoldirilmaydi: foydalanuvchi qatlam qayerdaligini
+        // ko'rib turishi kerak, aks holda uni tanlay olmaydi.
+        drawRect(
+            color = Color(0xFFE5E7EB),
+            topLeft = topLeft,
+            size = size,
+            alpha = layer.transform.opacity
+        )
+
+        return
+    }
+
+    val srcLeft = (layer.cropLeft * bitmap.width)
+        .toInt()
+        .coerceIn(0, bitmap.width - 1)
+
+    val srcTop = (layer.cropTop * bitmap.height)
+        .toInt()
+        .coerceIn(0, bitmap.height - 1)
+
+    val srcWidth = ((layer.cropRight - layer.cropLeft) * bitmap.width)
+        .toInt()
+        .coerceIn(1, bitmap.width - srcLeft)
+
+    val srcHeight = ((layer.cropBottom - layer.cropTop) * bitmap.height)
+        .toInt()
+        .coerceIn(1, bitmap.height - srcTop)
+
+    drawImage(
+        image = bitmap,
+        srcOffset = IntOffset(srcLeft, srcTop),
+        srcSize = IntSize(srcWidth, srcHeight),
+        dstOffset = IntOffset(topLeft.x.toInt(), topLeft.y.toInt()),
+        dstSize = IntSize(
+            size.width.toInt().coerceAtLeast(1),
+            size.height.toInt().coerceAtLeast(1)
+        ),
+        alpha = layer.transform.opacity
+    )
 }
 
 private fun DrawScope.drawShapeLayer(
@@ -381,7 +450,11 @@ private fun DrawScope.drawTextAsPaths(
 
         textSize = fontSizePx
 
-        typeface = layer.androidTypeface()
+        typeface = DesignFonts.typeface(
+            font = layer.font,
+            bold = layer.isBold,
+            italic = layer.isItalic
+        )
 
         // Android'da harflar oralig'i EM ulushida o'lchanadi,
         // bizda esa millimetrda. Shrift o'lchamiga bo'linadi.
@@ -446,32 +519,6 @@ private fun DrawScope.drawTextAsPaths(
     }
 }
 
-/**
- * Compose shrift oilasini Android turiga o'giradi.
- *
- * Faqat tizim shriftlari ishlatilgani uchun bu jadval yetarli.
- * Kelajakda o'z shriftlarimiz qo'shilsa, ular Typeface sifatida
- * ham yuklanishi kerak bo'ladi.
- */
-private fun TextLayer.androidTypeface(): Typeface {
-
-    val family = when (font) {
-        DesignFont.SANS -> "sans-serif"
-        DesignFont.SERIF -> "serif"
-        DesignFont.MONO -> "monospace"
-        DesignFont.CURSIVE -> "cursive"
-    }
-
-    val style = when {
-        isBold && isItalic -> Typeface.BOLD_ITALIC
-        isBold -> Typeface.BOLD
-        isItalic -> Typeface.ITALIC
-        else -> Typeface.NORMAL
-    }
-
-    return Typeface.create(family, style)
-}
-
 /** Ekran va eksport uchun bir xil uslub. */
 fun TextLayer.toTextStyle(
     density: androidx.compose.ui.unit.Density,
@@ -485,7 +532,7 @@ fun TextLayer.toTextStyle(
         TextStyle(
             color = color,
             fontSize = fontSizePx.toSp(),
-            fontFamily = font.family,
+            fontFamily = DesignFonts.family(font),
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
             fontStyle = if (isItalic) FontStyle.Italic else FontStyle.Normal,
             textDecoration = if (isUnderline) TextDecoration.Underline else null,

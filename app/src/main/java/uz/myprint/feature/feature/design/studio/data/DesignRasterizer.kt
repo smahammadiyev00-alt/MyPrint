@@ -12,7 +12,9 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import uz.myprint.core.di.AppContainer
 import uz.myprint.feature.feature.design.studio.domain.DesignDocument
+import uz.myprint.feature.feature.design.studio.domain.ImageLayer
 import uz.myprint.feature.feature.design.studio.domain.PRINT_PX_PER_MM
 import uz.myprint.feature.feature.design.studio.presentation.CanvasGeometry
 import uz.myprint.feature.feature.design.studio.presentation.drawDocument
@@ -71,15 +73,29 @@ object DesignRasterizer {
     fun render(
         context: Context,
         document: DesignDocument,
-        pxPerMm: Float
+        pxPerMm: Float,
+
+        /**
+         * Bleed maydoni ham chizilsinmi.
+         *
+         * PDF eksporti bilan bir xil qoida: default'da YO'Q,
+         * shunda fayl studioda ko'rilgan o'lchamda chiqadi.
+         */
+        includeBleed: Boolean = false
     ): ImageBitmap {
 
+        val areaWidthMm =
+            if (includeBleed) document.fullWidthMm else document.widthMm
+
+        val areaHeightMm =
+            if (includeBleed) document.fullHeightMm else document.heightMm
+
         // Avval so'ralgan o'lcham hisoblanadi...
-        var widthPx = (document.fullWidthMm * pxPerMm)
+        var widthPx = (areaWidthMm * pxPerMm)
             .roundToInt()
             .coerceAtLeast(1)
 
-        var heightPx = (document.fullHeightMm * pxPerMm)
+        var heightPx = (areaHeightMm * pxPerMm)
             .roundToInt()
             .coerceAtLeast(1)
 
@@ -111,7 +127,14 @@ object DesignRasterizer {
         val geometry = CanvasGeometry(
             document = document,
             pxPerMm = pxPerMm,
-            originPx = Offset.Zero
+            originPx = if (includeBleed) {
+                Offset.Zero
+            } else {
+                Offset(
+                    -document.bleedMm * pxPerMm,
+                    -document.bleedMm * pxPerMm
+                )
+            }
         )
 
         CanvasDrawScope().draw(
@@ -120,7 +143,12 @@ object DesignRasterizer {
             canvas = Canvas(bitmap),
             size = Size(widthPx.toFloat(), heightPx.toFloat())
         ) {
-            drawDocument(document, geometry, textMeasurer)
+            drawDocument(
+                document = document,
+                geometry = geometry,
+                textMeasurer = textMeasurer,
+                images = loadImagesForExport(context, document)
+            )
         }
 
         return bitmap
@@ -140,7 +168,7 @@ object DesignRasterizer {
         target: File
     ): File? = runCatching {
 
-        val longest = maxOf(document.fullWidthMm, document.fullHeightMm)
+        val longest = maxOf(document.widthMm, document.heightMm)
             .coerceAtLeast(1f)
 
         // Pastki chegara yo'q.
@@ -167,7 +195,8 @@ object DesignRasterizer {
     /**
      * 300 DPI da to'liq o'lchamdagi rasm.
      *
-     * Vizitka uchun: 94 × 54 mm (bleed bilan) → 1110 × 638 px.
+     * Vizitka uchun: 90 × 50 mm → 1063 × 591 px. Bleed
+     * qo'shilmaydi — fayl studioda ko'rilgan o'lchamda chiqadi.
      */
     fun savePrintPng(
         context: Context,
@@ -187,4 +216,30 @@ object DesignRasterizer {
         target
 
     }.getOrNull()
+}
+
+/**
+ * Eksport uchun rasmlarni yuklaydi.
+ *
+ * Ekrandagidan katta chegara: bosmada 300 DPI kerak, ya'ni 10 sm
+ * kenglikdagi rasm uchun 1200 piksel. 4000 px A4 formatgacha
+ * yetarli va xotirani ham bo'g'ib qo'ymaydi.
+ */
+private fun loadImagesForExport(
+    context: Context,
+    document: DesignDocument
+): Map<String, ImageBitmap> {
+
+    val paths = document.layers
+        .filterIsInstance<ImageLayer>()
+        .map { it.sourceUri }
+        .distinct()
+
+    if (paths.isEmpty()) return emptyMap()
+
+    val store = AppContainer.imageStore
+
+    return paths.mapNotNull { path ->
+        store.load(path, maxPx = 4000)?.let { path to it }
+    }.toMap()
 }

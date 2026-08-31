@@ -2,6 +2,7 @@ package uz.myprint
 
 import android.app.Application
 import uz.myprint.core.di.AppContainer
+import uz.myprint.feature.feature.design.studio.data.DesignFonts
 
 /**
  * Ilova kirish nuqtasi.
@@ -25,5 +26,10 @@ class MyPrintApp : Application() {
     override fun onCreate() {
         super.onCreate()
         AppContainer.init(this)
+
+        // Shriftlar keshi ilova kontekstiga bog'lanadi. PDF
+        // eksporti Typeface talab qiladi, uni esa faqat kontekst
+        // orqali resursdan yuklash mumkin.
+        DesignFonts.init(this)
     }
 }

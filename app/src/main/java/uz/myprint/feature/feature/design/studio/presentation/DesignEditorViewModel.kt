@@ -10,7 +10,11 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import uz.myprint.core.di.AppContainer
 import uz.myprint.feature.feature.design.studio.data.DesignProjectStore
+import uz.myprint.feature.feature.design.studio.data.ImportedImage
+import uz.myprint.feature.feature.design.studio.domain.DesignTemplate
+import uz.myprint.feature.feature.design.studio.domain.ImageLayer
 import uz.myprint.feature.feature.design.studio.data.SavedProject
 import uz.myprint.feature.feature.product.domain.model.ProductCategory
 import uz.myprint.feature.feature.design.studio.domain.DesignDocument
@@ -135,6 +139,26 @@ class DesignEditorViewModel(
     val isSelectionLocked: Boolean
         get() = selectionIds.any { document.layerById(it)?.isLocked == true }
 
+    /** Tanlovda rasm bormi. */
+    val selectionHasImage: Boolean
+        get() = selectionIds.any { document.layerById(it) is ImageLayer }
+
+    /**
+     * Cho'zishda proporsiya saqlanishi kerakmi.
+     *
+     * RASM uchun burchak nuqtasi DOIM nisbatni saqlaydi, qulf
+     * o'chiq bo'lsa ham. Sabab amaliy: logotip cho'zilib buzilsa,
+     * mijoz buni ko'pincha sezmaydi va buzilgan logotip bosilib
+     * ketadi — bosmaxona esa aybdor bo'lib qoladi. Matn va shakl
+     * uchun bunday xavf yo'q, ular ataylab cho'ziladi.
+     *
+     * Rasmni ataylab cho'zish kerak bo'lsa — masalan fon fotosini
+     * butun maketga yoyish — YON nuqta ishlatiladi, u hech qachon
+     * cheklanmaydi.
+     */
+    fun keepAspectFor(handle: ResizeHandle): Boolean =
+        aspectLocked || (handle.isCorner && selectionHasImage)
+
     val selectedText: TextLayer?
         get() = selectedLayer as? TextLayer
 
@@ -254,7 +278,12 @@ class DesignEditorViewModel(
         var w = widthMm ?: t.widthMm
         var h = heightMm ?: t.heightMm
 
-        if (aspectLocked && t.widthMm > 0f && t.heightMm > 0f) {
+        // Raqamli panelda ham rasm nisbati saqlanadi — cho'zish
+        // bilan bir xil qoida bo'lishi kerak, aks holda bir yo'l
+        // himoyalangan, ikkinchisi yo'q degan chalkashlik chiqadi.
+        val keepRatio = aspectLocked || selectionHasImage
+
+        if (keepRatio && t.widthMm > 0f && t.heightMm > 0f) {
 
             val ratio = t.heightMm / t.widthMm
 
@@ -413,6 +442,67 @@ class DesignEditorViewModel(
         selectedLayerId = copy.id
     }
 
+    // ----- shablon -----
+
+    /**
+     * Shablonni qo'llaydi.
+     *
+     * Mavjud qatlamlar butunlay ALMASHTIRILADI, ustiga qo'shilmaydi.
+     * Sabab: shablon yaxlit kompozitsiya — fon, tasma, matnlar
+     * bir-biriga moslangan. Ustiga qo'yilsa eski elementlar orasidan
+     * chiqib turadi va natija tartibsiz bo'ladi.
+     *
+     * Tarixga yoziladi, ya'ni "orqaga" bosib eski ishga qaytish
+     * mumkin. Bu muhim: foydalanuvchi shablonni ko'rish uchun
+     * bosishi va fikridan qaytishi tabiiy.
+     */
+    fun applyTemplate(templateItem: DesignTemplate) {
+
+        pushHistory()
+
+        document = document.copy(layers = templateItem.build(document))
+
+        selectedLayerId = null
+    }
+
+    // ----- rasm -----
+
+    /**
+     * Galereyadan tanlangan rasmni maketga qo'shadi.
+     *
+     * O'lcham rasmning O'Z nisbatiga qarab hisoblanadi. Bu muhim:
+     * agar hamma rasm bir xil to'rtburchakka joylashtirilsa,
+     * kvadrat logotip ham, keng banner ham cho'zilib buziladi va
+     * foydalanuvchi buni qo'lda to'g'rilashga majbur bo'ladi.
+     *
+     * Kenglik maket enining yarmicha olinadi — vizitkada logotip
+     * uchun odatiy o'lcham, keyin bemalol o'zgartiriladi.
+     */
+    fun addImage(image: ImportedImage) {
+
+        val targetWidth = document.widthMm * 0.5f
+
+        val targetHeight = (targetWidth / image.aspectRatio)
+            .coerceAtMost(document.heightMm * 0.8f)
+
+        // Balandlik cheklangan bo'lsa, kenglik ham unga
+        // moslashadi — aks holda nisbat baribir buzilardi.
+        val width = targetHeight * image.aspectRatio
+
+        addLayer(
+            ImageLayer(
+                id = newId(),
+                transform = LayerTransform(
+                    xMm = (document.widthMm - width) / 2f,
+                    yMm = (document.heightMm - targetHeight) / 2f,
+                    widthMm = width,
+                    heightMm = targetHeight
+                ),
+                sourceUri = image.path
+            )
+        )
+    }
+
     // ----- guruhlash -----
 
     /**
@@ -484,6 +574,23 @@ class DesignEditorViewModel(
 
         pushHistory()
 
+        // Rasm qatlami o'chirilganda uning nusxasi ham o'chadi.
+        // Aks holda ichki xotira asta-sekin ishlatilmaydigan
+        // fayllar bilan to'lib borardi va foydalanuvchi buning
+        // sababini hech qachon bilmasdi.
+        (document.layerById(id) as? ImageLayer)?.let { image ->
+
+            val stillUsed = document.layers.any {
+                it.id != id &&
+                        it is ImageLayer &&
+                        it.sourceUri == image.sourceUri
+            }
+
+            if (!stillUsed) {
+                AppContainer.imageStore.delete(image.sourceUri)
+            }
+        }
+
         document = document.removeLayer(id)
 
         if (selectedLayerId == id) {
@@ -543,6 +650,53 @@ class DesignEditorViewModel(
      * Muqova bilan birga, chunki bosh sahifadagi ro'yxat aynan
      * shu rasmni ko'rsatadi.
      */
+    /**
+     * YANGI BO'SH MAKET.
+     *
+     * Muammo shu edi: maket identifikatori "mahsulot-o'lcham"
+     * ko'rinishida yasalardi, ya'ni bitta mahsulot uchun bittagina
+     * maket bo'lishi mumkin edi. Studio har safar o'sha eski
+     * qoralamani ochib berardi va ikkinchi variantni yasashning
+     * iloji yo'q edi.
+     *
+     * Endi yangi maket vaqt tamg'asi bilan alohida id oladi —
+     * eski ish o'z faylida qoladi, ro'yxatda ikkalasi ham
+     * ko'rinadi.
+     *
+     * Joriy ish avval saqlanadi. Bo'sh maket saqlanmaydi:
+     * aks holda "Loyihalarim" bo'sh kartalar bilan to'lib
+     * ketardi.
+     */
+    fun startNewDocument() {
+
+        viewModelScope.launch {
+
+            if (document.layers.isNotEmpty()) {
+                saveNow()
+            }
+
+            autoSaveJob?.cancel()
+
+            // O'lcham, bleed va xavfsiz maydon o'zgarmaydi —
+            // mahsulot o'sha, faqat mazmuni bo'shatiladi.
+            document = document.copy(
+                id = "$productId-$sizeId-${System.currentTimeMillis()}",
+                layers = emptyList()
+            )
+
+            undoStack.clear()
+            redoStack.clear()
+
+            selectedLayerId = null
+            contextMenuLayerId = null
+
+            zoom = 1f
+            pan = Offset.Zero
+
+            savedAtMillis = null
+        }
+    }
+
     suspend fun saveNow(): SavedProject? {
 
         val store = store ?: return null

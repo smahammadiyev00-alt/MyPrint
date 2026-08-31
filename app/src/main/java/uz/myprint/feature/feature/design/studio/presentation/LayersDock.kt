@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -40,7 +41,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -48,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import uz.myprint.core.di.AppContainer
 import uz.myprint.core.designsystem.theme.MyPrintColors
 import uz.myprint.feature.feature.design.studio.domain.DesignLayer
 import uz.myprint.feature.feature.design.studio.domain.ImageLayer
@@ -432,7 +436,7 @@ private fun LayerThumb(layer: DesignLayer) {
                 when (layer) {
                     is ShapeLayer -> layer.fill ?: MyPrintColors.Border
                     is TextLayer -> Color(0xFF1F2937)
-                    else -> MyPrintColors.Border
+                    is ImageLayer -> MyPrintColors.Border
                 }
             ),
         contentAlignment = Alignment.Center
@@ -447,14 +451,36 @@ private fun LayerThumb(layer: DesignLayer) {
                 color = Color.White
             )
 
-            is ImageLayer -> Text(
-                text = "IMG",
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                color = MyPrintColors.TextSecondary
-            )
+            is ImageLayer -> {
 
-            else -> Unit
+                // Rasm qatlamida haqiqiy ko'rinish beriladi:
+                // maketda bir necha rasm bo'lsa, "IMG" yozuvi
+                // ularni bir-biridan ajratmaydi.
+                val thumb = remember(layer.sourceUri) {
+                    AppContainer.imageStore.load(layer.sourceUri, maxPx = 96)
+                }
+
+                if (thumb != null) {
+
+                    Image(
+                        bitmap = thumb,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+
+                } else {
+
+                    Text(
+                        text = "IMG",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MyPrintColors.TextSecondary
+                    )
+                }
+            }
+
+            is ShapeLayer -> Unit
         }
     }
 }
@@ -496,7 +522,6 @@ private fun layerSubtitle(layer: DesignLayer): String {
         }
 
         is ImageLayer -> "Rasm"
-        else -> ""
     }
 
     val rotation = if (kotlin.math.abs(t.rotationDeg % 360f) > 0.5f) {

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,11 +17,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Circle
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.Crop169
+import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.FormatAlignCenter
@@ -31,32 +33,49 @@ import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.Height
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.automirrored.rounded.NoteAdd
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.Opacity
-import androidx.compose.material.icons.rounded.Redo
+import androidx.compose.material.icons.automirrored.rounded.Redo
 import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.material.icons.rounded.TextFields
-import androidx.compose.material.icons.rounded.Undo
+import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import uz.myprint.core.designsystem.theme.MyPrintColors
+import uz.myprint.core.di.AppContainer
+import uz.myprint.feature.feature.product.domain.model.ProductCategory
+import uz.myprint.feature.feature.design.studio.data.PrintQuality
+import uz.myprint.feature.feature.design.studio.data.TemplateCatalog
+import uz.myprint.feature.feature.design.studio.data.printDpi
+import uz.myprint.feature.feature.design.studio.data.printQuality
+import uz.myprint.feature.feature.design.studio.domain.ImageLayer
 import uz.myprint.feature.feature.design.studio.data.ShareFormat
 import uz.myprint.feature.feature.design.studio.domain.LayerTransform
 import uz.myprint.feature.feature.design.studio.domain.ShapeKind
@@ -91,6 +110,9 @@ private enum class Panel {
 fun DesignStudioScreen(
     viewModel: DesignEditorViewModel,
     productName: String,
+
+    /** Shablonlar ro'yxati mahsulot turiga qarab tanlanadi. */
+    productCategory: ProductCategory = ProductCategory.BUSINESS_CARD,
     onBackClick: () -> Unit = {},
     onDoneClick: () -> Unit = {},
     onShare: (ShareFormat) -> Unit = {}
@@ -109,6 +131,37 @@ fun DesignStudioScreen(
     var editingText by remember { mutableStateOf<String?>(null) }
 
     var choosingShareFormat by remember { mutableStateOf(false) }
+
+    var addMenuOpen by remember { mutableStateOf(false) }
+
+    var templatesOpen by remember { mutableStateOf(false) }
+
+    var confirmNewDocument by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+
+    // Photo Picker — Android 13+ da tizim komponenti, eski
+    // versiyalarda Play Services orqali ishlaydi. Galereyaga
+    // RUXSAT SO'RAMAYDI: foydalanuvchi qaysi rasmni berishini
+    // o'zi tanlaydi va ilova qolganini ko'rmaydi.
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let { importImage(scope, viewModel, it) }
+    }
+
+    // Fayl tizimi tanlagichi.
+    //
+    // Galereya faqat "media" deb belgilangan rasmlarni ko'rsatadi.
+    // Telegramdan yuklab olingan logotip yoki Drive'dagi fayl u
+    // yerda ko'rinmaydi — foydalanuvchi uchun bu tushunarsiz,
+    // chunki fayl telefonida turibdi. Bu tanlagich butun fayl
+    // tizimini ochadi.
+    val filePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let { importImage(scope, viewModel, it) }
+    }
 
     // Tanlov o'zgarganda ochiq panel boshqa turdagi element uchun
     // ma'nosiz bo'lib qolishi mumkin, shuning uchun yopiladi.
@@ -151,7 +204,17 @@ fun DesignStudioScreen(
             onBackClick = onBackClick,
             onUndo = viewModel::undo,
             onRedo = viewModel::redo,
-            onDoneClick = onDoneClick
+            onDoneClick = onDoneClick,
+
+            // Bo'sh maketda so'rashning ma'nosi yo'q — yo'qoladigan
+            // narsa yo'q, darhol yangisi ochiladi.
+            onNewDocument = {
+                if (document.layers.isEmpty()) {
+                    viewModel.startNewDocument()
+                } else {
+                    confirmNewDocument = true
+                }
+            }
         )
 
         // weight(1f) — kanvas qolgan bo'sh joyni oladi. Sloylar doki
@@ -165,6 +228,25 @@ fun DesignStudioScreen(
 
         if (viewModel.layersPanelOpen) {
             LayersDock(viewModel = viewModel)
+        }
+
+        // Bo'sh maketda taklif.
+        //
+        // Foydalanuvchi oq ekranga qarab turishi eng yomon
+        // boshlanish. Shablonni menyu ichiga yashirsak, ko'pchilik
+        // uni topmaydi va noldan urinib, yarim yo'lda tashlab
+        // ketadi.
+        if (document.layers.isEmpty()) {
+
+            EmptyCanvasHint(onOpenTemplates = { templatesOpen = true })
+        }
+
+        // Rasm sifati ogohlantirishi xavfsiz maydondan MUHIMROQ:
+        // chetdan chiqqan element ko'zga tashlanadi, past aniqlik
+        // esa faqat bosmadan keyin bilinadi. Shuning uchun u
+        // yuqorida turadi.
+        (selected as? ImageLayer)?.let { image ->
+            ImageQualityWarning(image)
         }
 
         val outside = document.layersOutsideSafeArea()
@@ -194,10 +276,31 @@ fun DesignStudioScreen(
         }
 
         AddBar(
-            activePanel = panel,
-            onAddText = {
+            isAddOpen = addMenuOpen,
+            isBackgroundOpen = panel == Panel.BACKGROUND,
+            layerCount = document.layers.size,
+            isLayersOpen = viewModel.layersPanelOpen,
+            onAdd = { addMenuOpen = true },
+            onBackground = {
+                viewModel.select(null)
+                panel = if (panel == Panel.BACKGROUND) null else Panel.BACKGROUND
+            },
+            onLayers = {
+                viewModel.showLayersPanel(!viewModel.layersPanelOpen)
+            }
+        )
+    }
 
-                viewModel.addLayer(
+    AddMenuSheet(
+        visible = addMenuOpen,
+        onDismiss = { addMenuOpen = false },
+        onPick = { action ->
+
+            addMenuOpen = false
+
+            when (action) {
+
+                AddAction.Text -> viewModel.addLayer(
                     TextLayer(
                         id = DesignEditorViewModel.newId(),
                         transform = centered(
@@ -210,33 +313,110 @@ fun DesignStudioScreen(
                         fontSizeMm = 5f
                     )
                 )
-            },
-            onAddShape = {
 
-                viewModel.addLayer(
+                AddAction.ImageFromGallery -> imagePicker.launch(
+                    PickVisualMediaRequest(
+                        ActivityResultContracts.PickVisualMedia.ImageOnly
+                    )
+                )
+
+                // MIME turlari aniq sanaladi: "*/*" berilsa
+                // foydalanuvchi hujjat yoki musiqa tanlab qo'yishi
+                // mumkin va keyin "nega ishlamadi" degan savol
+                // tug'iladi. Ro'yxat BitmapFactory o'qiy oladigan
+                // formatlar bilan cheklangan.
+                AddAction.ImageFromFiles -> filePicker.launch(
+                    arrayOf(
+                        "image/png",
+                        "image/jpeg",
+                        "image/webp",
+                        "image/heif",
+                        "image/heic",
+                        "image/bmp",
+                        "image/gif"
+                    )
+                )
+
+                is AddAction.Shape -> viewModel.addLayer(
                     ShapeLayer(
                         id = DesignEditorViewModel.newId(),
                         transform = centered(
                             document.widthMm,
                             document.heightMm,
                             document.widthMm * 0.4f,
-                            document.heightMm * 0.25f
+                            if (action.kind == ShapeKind.LINE) 1f
+                            else document.heightMm * 0.25f
                         ),
-                        cornerRadiusMm = 1.5f
+                        kind = action.kind,
+                        cornerRadiusMm = if (action.kind == ShapeKind.RECTANGLE) {
+                            1.5f
+                        } else {
+                            0f
+                        },
+                        strokeColor = if (action.kind == ShapeKind.LINE) {
+                            Color(0xFF7B4DFF)
+                        } else {
+                            null
+                        }
                     )
                 )
+
+                AddAction.Background -> {
+                    viewModel.select(null)
+                    panel = Panel.BACKGROUND
+                }
+
+                AddAction.Template -> templatesOpen = true
+            }
+        }
+    )
+
+    // Tasdiqlash oynasi.
+    //
+    // "Yangi" so'zi ikki ma'noda tushuniladi: kimdir joriy ish
+    // saqlanadi deb o'ylaydi, kimdir o'chib ketadi deb qo'rqadi.
+    // Shuning uchun aynan nima bo'lishi yozib qo'yiladi.
+    if (confirmNewDocument) {
+
+        AlertDialog(
+            onDismissRequest = { confirmNewDocument = false },
+            title = { Text("Yangi maket") },
+            text = {
+                Text(
+                    "Joriy maket saqlanadi va \"Loyihalarim\" ro'yxatida " +
+                            "qoladi. Bo'sh maket ochiladi."
+                )
             },
-            onBackground = {
-                viewModel.select(null)
-                panel = if (panel == Panel.BACKGROUND) null else Panel.BACKGROUND
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmNewDocument = false
+                        viewModel.startNewDocument()
+                    }
+                ) {
+                    Text("Yangi maket")
+                }
             },
-            layerCount = document.layers.size,
-            isLayersOpen = viewModel.layersPanelOpen,
-            onLayers = {
-                viewModel.showLayersPanel(!viewModel.layersPanelOpen)
+            dismissButton = {
+                TextButton(onClick = { confirmNewDocument = false }) {
+                    Text("Bekor qilish")
+                }
             }
         )
     }
+
+    TemplateSheet(
+        visible = templatesOpen,
+        document = document,
+        templates = remember(productCategory) {
+            TemplateCatalog.forCategory(productCategory)
+        },
+        onDismiss = { templatesOpen = false },
+        onPick = { chosen ->
+            templatesOpen = false
+            viewModel.applyTemplate(chosen)
+        }
+    )
 
     if (choosingShareFormat) {
 
@@ -287,6 +467,7 @@ private fun PanelContent(
 
                     FontPanel(
                         selected = text.font,
+                        currentText = text.text,
                         onPick = { font ->
                             viewModel.updateText { it.copy(font = font) }
                         }
@@ -822,8 +1003,11 @@ private fun TopBar(
     onBackClick: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
-    onDoneClick: () -> Unit
+    onDoneClick: () -> Unit,
+    onNewDocument: () -> Unit
 ) {
+
+    var menuOpen by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -881,24 +1065,148 @@ private fun TopBar(
         )
 
         BarIcon(
-            icon = Icons.Rounded.Undo,
+            icon = Icons.AutoMirrored.Rounded.Undo,
             tint = if (canUndo) MyPrintColors.TextPrimary
             else MyPrintColors.IconSecondary,
             onClick = onUndo
         )
 
         BarIcon(
-            icon = Icons.Rounded.Redo,
+            icon = Icons.AutoMirrored.Rounded.Redo,
             tint = if (canRedo) MyPrintColors.TextPrimary
             else MyPrintColors.IconSecondary,
             onClick = onRedo
         )
+
+        Box {
+
+            BarIcon(
+                icon = Icons.Rounded.MoreVert,
+                tint = MyPrintColors.TextPrimary,
+                onClick = { menuOpen = true }
+            )
+
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false }
+            ) {
+
+                DropdownMenuItem(
+                    text = { Text("Yangi maket") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.NoteAdd,
+                            contentDescription = null
+                        )
+                    },
+                    onClick = {
+                        menuOpen = false
+                        onNewDocument()
+                    }
+                )
+            }
+        }
 
         BarIcon(
             icon = Icons.Rounded.Check,
             tint = MyPrintColors.Primary,
             onClick = onDoneClick
         )
+    }
+}
+
+/**
+ * Rasmning bosma aniqligi.
+ *
+ * Ekranda hammasi tiniq ko'rinadi — ekran 400 DPI atrofida.
+ * Bosma esa 300 DPI va rasm cho'zilgan bo'lsa donador chiqadi.
+ * Buni BOSMADAN OLDIN aytish kerak, aks holda mijoz pul
+ * to'lagandan keyin biladi va aybni bosmaxonaga qo'yadi.
+ */
+@Composable
+private fun ImageQualityWarning(layer: ImageLayer) {
+
+    val pixelSize = remember(layer.sourceUri) {
+        AppContainer.imageStore.pixelSize(layer.sourceUri)
+    } ?: return
+
+    val dpi = printDpi(
+        pixelWidth = pixelSize.first,
+        widthMm = layer.transform.widthMm
+    )
+
+    val quality = printQuality(dpi)
+
+    if (quality == PrintQuality.GOOD) return
+
+    val poor = quality == PrintQuality.POOR
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(if (poor) Color(0xFFFEE2E2) else Color(0xFFFEF3C7))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Icon(
+            imageVector = Icons.Rounded.WarningAmber,
+            contentDescription = null,
+            tint = if (poor) Color(0xFF991B1B) else Color(0xFF92400E),
+            modifier = Modifier.size(16.dp)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = if (poor) {
+                "Rasm aniqligi past ($dpi DPI) — bosmada donador chiqadi. " +
+                        "Kichraytiring yoki sifatliroq rasm tanlang"
+            } else {
+                "Rasm aniqligi $dpi DPI — bosma uchun 300 tavsiya etiladi"
+            },
+            fontSize = 12.sp,
+            color = if (poor) Color(0xFF991B1B) else Color(0xFF92400E)
+        )
+    }
+}
+
+@Composable
+private fun EmptyCanvasHint(onOpenTemplates: () -> Unit) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF1EEFF))
+            .clickable { onOpenTemplates() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Icon(
+            imageVector = Icons.Rounded.Dashboard,
+            contentDescription = null,
+            tint = MyPrintColors.Primary,
+            modifier = Modifier.size(20.dp)
+        )
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+
+            Text(
+                text = "Tayyor maketdan boshlang",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MyPrintColors.Primary
+            )
+
+            Text(
+                text = "Tanlang va matnini o'zingiznikiga almashtiring",
+                fontSize = 11.sp,
+                color = MyPrintColors.TextSecondary
+            )
+        }
     }
 }
 
@@ -1011,7 +1319,7 @@ private fun SelectionBar(
 
         ToolItem(Icons.Rounded.ContentCopy, "Nusxa", onClick = onDuplicate)
 
-        ToolItem(Icons.Rounded.ArrowForward, "Oldinga", onClick = onForward)
+        ToolItem(Icons.AutoMirrored.Rounded.ArrowForward, "Oldinga", onClick = onForward)
 
         ToolItem(
             Icons.AutoMirrored.Rounded.ArrowBack, "Orqaga",
@@ -1026,14 +1334,25 @@ private fun SelectionBar(
     }
 }
 
+/**
+ * Pastki qator.
+ *
+ * Faqat uchta tugma: qo'shish, fon, sloylar. Avval bu yerda
+ * to'rtta alohida element turardi va har yangi imkoniyat
+ * qo'shilganda joy yetmay borardi — telefonda gorizontal joy
+ * cheklangan va tugmalar mayda bo'lib ketardi.
+ *
+ * Endi hamma qo'shish menyuda: u cheksiz kengayadi, pastki qator
+ * esa o'zgarishsiz qoladi.
+ */
 @Composable
 private fun AddBar(
-    activePanel: Panel?,
-    onAddText: () -> Unit,
-    onAddShape: () -> Unit,
-    onBackground: () -> Unit,
+    isAddOpen: Boolean,
+    isBackgroundOpen: Boolean,
     layerCount: Int,
     isLayersOpen: Boolean,
+    onAdd: () -> Unit,
+    onBackground: () -> Unit,
     onLayers: () -> Unit
 ) {
 
@@ -1046,13 +1365,39 @@ private fun AddBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        ToolItem(Icons.Rounded.TextFields, "Matn", onClick = onAddText)
+        // Asosiy amal — ajratib ko'rsatiladi.
+        Row(
+            modifier = Modifier
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+                .background(
+                    if (isAddOpen) MyPrintColors.Primary
+                    else Color(0xFFF1EEFF)
+                )
+                .clickable { onAdd() }
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
 
-        ToolItem(Icons.Rounded.Crop169, "Shakl", onClick = onAddShape)
+            Icon(
+                imageVector = Icons.Rounded.Add,
+                contentDescription = "Qo'shish",
+                tint = if (isAddOpen) Color.White else MyPrintColors.Primary,
+                modifier = Modifier.size(22.dp)
+            )
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            Text(
+                text = "Qo'shish",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isAddOpen) Color.White else MyPrintColors.Primary
+            )
+        }
 
         ToolItem(
             Icons.Rounded.Wallpaper, "Fon",
-            isActive = activePanel == Panel.BACKGROUND,
+            isActive = isBackgroundOpen,
             onClick = onBackground
         )
 
@@ -1141,3 +1486,23 @@ private fun BarIcon(
 private fun Float.clean(): String =
     if (this == this.roundToInt().toFloat()) this.roundToInt().toString()
     else String.format("%.1f", this)
+
+/**
+ * Tanlangan rasmni ichki xotiraga ko'chirib, maketga qo'shadi.
+ *
+ * Galereya va fayl tanlagichi bir xil ishni bajaradi, shuning
+ * uchun mantiq bitta joyda.
+ */
+private fun importImage(
+    scope: kotlinx.coroutines.CoroutineScope,
+    viewModel: DesignEditorViewModel,
+    uri: android.net.Uri
+) {
+
+    scope.launch {
+
+        AppContainer.imageStore
+            .import(uri)
+            ?.let(viewModel::addImage)
+    }
+}

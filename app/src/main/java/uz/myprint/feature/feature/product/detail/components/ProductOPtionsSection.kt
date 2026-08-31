@@ -358,16 +358,25 @@ private fun SizeSection(
 }
 
 /**
- * Banner metrda o'lchanadi (pogon metr), sticker esa santimetrda.
+ * Erkin o'lcham qaysi birlikda kiritiladi.
+ *
+ * Hamma joyda MILLIMETR.
+ *
+ * Ilgari banner va roll-up metrda edi. Nazariy jihatdan mantiqiy
+ * ko'rinardi — banner pogon metrda sotiladi. Amalda noqulay
+ * chiqdi: 1.2 × 0.8 deb yozish uchun kasr nuqtasi kerak, u
+ * telefon klaviaturasida alohida tugmada turadi va "0.8" o'rniga
+ * "8" yozib yuborish oson. Millimetrda esa butun son: 1200 × 800.
+ *
+ * Studio ham, PDF ham millimetrda ishlaydi — endi kiritish
+ * ular bilan bir tilda.
+ *
+ * Parametr saqlanib qoldi: mahsulot turiga qarab boshqa birlik
+ * kerak bo'lsa, chaqiruv joylarini o'zgartirmasdan qaytariladi.
  */
+@Suppress("UNUSED_PARAMETER")
 private fun customUnitFor(category: ProductCategory): SizeUnit =
-    when (category) {
-
-        ProductCategory.BANNER,
-        ProductCategory.ROLL_UP -> SizeUnit.M
-
-        else -> SizeUnit.CM
-    }
+    SizeUnit.MM
 
 @Composable
 private fun CustomSizeInput(

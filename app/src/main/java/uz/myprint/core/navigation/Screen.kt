@@ -36,17 +36,32 @@ sealed class Screen(val route: String) {
     }
 
     data object DesignStudio : Screen(
-        "design_studio/{productId}/{sizeId}"
+        "design_studio/{productId}/{sizeId}/{projectId}"
     ) {
 
         /** Bo'sh yo'l bo'lagi marshrutni buzadi, shuning uchun belgi. */
         const val NO_SIZE = "-"
 
+        /**
+         * Aniq loyiha ko'rsatilmagan.
+         *
+         * Mahsulot sahifasidan kelinganda shu qiymat uzatiladi va
+         * studio HAR SAFAR bo'sh maket ochadi. Ilgari bunday
+         * ajratish yo'q edi: manzil faqat mahsulot va o'lchamdan
+         * iborat bo'lgani uchun studio doim o'sha bitta
+         * qoralamani topib ochaverardi va ikkinchi variantni
+         * yasashning iloji bo'lmasdi.
+         */
+        const val NEW_PROJECT = "-"
+
         fun createRoute(
             productId: String,
-            sizeId: String
+            sizeId: String,
+            projectId: String = NEW_PROJECT
         ): String {
-            return "design_studio/$productId/${sizeId.ifBlank { NO_SIZE }}"
+            return "design_studio/$productId/" +
+                    "${sizeId.ifBlank { NO_SIZE }}/" +
+                    projectId.ifBlank { NEW_PROJECT }
         }
     }
 

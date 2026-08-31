@@ -331,31 +331,30 @@ fun LayerTransform.resizedBy(
             .coerceAtLeast(minSizeMm)
     }
 
-    if (keepAspect && widthMm > 0f && heightMm > 0f) {
+    // Proporsiya FAQAT burchak nuqtasida saqlanadi.
+    //
+    // Yon nuqta ataylab istisno: u foydalanuvchining "men aynan
+    // shu o'lchamni o'zgartirmoqchiman" degan aniq niyati. Agar
+    // yon nuqta ham nisbatni saqlasa, rasmni ataylab cho'zishning
+    // yo'li qolmasdi — masalan fon fotosini butun maketga
+    // yoyish uchun.
+    //
+    // Ya'ni: burchak — xavfsiz, yon — erkin.
+    if (keepAspect && handle.isCorner &&
+        widthMm > 0f && heightMm > 0f
+    ) {
 
         val ratio = heightMm / widthMm
 
-        when {
-            // Yon nuqtada ham qulf ishlaydi: yetakchi o'lcham
-            // qaysi bo'lsa, ikkinchisi unga ergashadi.
-            handle.dirX == 0 -> newWidth = (newHeight / ratio)
-                .coerceAtLeast(minSizeMm)
+        // Barmoq ko'proq surgan o'q yetakchi bo'ladi — shunda
+        // harakat tabiiy tuyuladi.
+        val growX = abs(newWidth - widthMm)
+        val growY = abs(newHeight - heightMm)
 
-            handle.dirY == 0 -> newHeight = (newWidth * ratio)
-                .coerceAtLeast(minSizeMm)
-
-            else -> {
-                // Burchakda barmoq ko'proq surgan o'q yetakchi
-                // bo'ladi — shunda harakat tabiiy tuyuladi.
-                val growX = abs(newWidth - widthMm)
-                val growY = abs(newHeight - heightMm)
-
-                if (growX >= growY) {
-                    newHeight = (newWidth * ratio).coerceAtLeast(minSizeMm)
-                } else {
-                    newWidth = (newHeight / ratio).coerceAtLeast(minSizeMm)
-                }
-            }
+        if (growX >= growY) {
+            newHeight = (newWidth * ratio).coerceAtLeast(minSizeMm)
+        } else {
+            newWidth = (newHeight / ratio).coerceAtLeast(minSizeMm)
         }
     }
 

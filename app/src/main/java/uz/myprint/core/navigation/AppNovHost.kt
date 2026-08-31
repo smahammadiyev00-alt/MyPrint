@@ -159,16 +159,17 @@ fun AppNavHost() {
                         // Hozircha bo'sh
                     },
 
-                    // Saqlangan loyihani bosganda studio o'sha
-                    // maket bilan ochiladi: Route omborni tekshirib,
-                    // yangi maket o'rniga qoralamani yuklaydi.
+                    // Saqlangan loyihani bosganda studio AYNAN
+                    // shu maketni ochadi — loyiha identifikatori
+                    // manzilda uzatiladi.
                     onProjectClick = { project ->
 
                         navController.navigate(
                             Screen.DesignStudio.createRoute(
                                 productId = project.productId,
                                 sizeId = project.sizeId
-                                    .ifBlank { Screen.DesignStudio.NO_SIZE }
+                                    .ifBlank { Screen.DesignStudio.NO_SIZE },
+                                projectId = project.id
                             )
                         )
                     },
@@ -326,7 +327,8 @@ fun AppNavHost() {
                 route = Screen.DesignStudio.route,
                 arguments = listOf(
                     navArgument("productId") { type = NavType.StringType },
-                    navArgument("sizeId") { type = NavType.StringType }
+                    navArgument("sizeId") { type = NavType.StringType },
+                    navArgument("projectId") { type = NavType.StringType }
                 )
             ) { backStackEntry ->
 
@@ -337,6 +339,8 @@ fun AppNavHost() {
                     productId = args?.getString("productId").orEmpty(),
 
                     sizeId = args?.getString("sizeId").orEmpty(),
+
+                    projectId = args?.getString("projectId").orEmpty(),
 
                     // Orqaga bosilganda ham maket saqlanadi (buni
                     // DesignStudioRoute o'zi bajaradi), shuning

@@ -118,47 +118,6 @@ fun ColorPanel(
     }
 }
 
-@Composable
-fun FontPanel(
-    selected: DesignFont,
-    onPick: (DesignFont) -> Unit
-) {
-
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-
-        items(DesignFont.entries) { font ->
-
-            val isSelected = font == selected
-
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(
-                        if (isSelected) MyPrintColors.Primary
-                        else MyPrintColors.Surface
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = if (isSelected) MyPrintColors.Primary
-                        else MyPrintColors.Border,
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    .clickable { onPick(font) }
-                    .padding(horizontal = 14.dp, vertical = 9.dp)
-            ) {
-
-                Text(
-                    text = font.label,
-                    fontFamily = font.family,
-                    fontSize = 14.sp,
-                    color = if (isSelected) Color.White
-                    else MyPrintColors.TextPrimary
-                )
-            }
-        }
-    }
-}
-
 /**
  * Sonli qiymat uchun slayder.
  *

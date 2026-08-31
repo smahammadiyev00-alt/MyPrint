@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Circle
 import androidx.compose.material.icons.rounded.ChangeHistory
 import androidx.compose.material.icons.rounded.Crop169
+import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.HorizontalRule
 import androidx.compose.material.icons.rounded.PhotoLibrary
@@ -60,6 +61,9 @@ sealed interface AddAction {
     data class Shape(val kind: ShapeKind) : AddAction
 
     data object Background : AddAction
+
+    /** Tayyor maket — mavjud qatlamlarni almashtiradi. */
+    data object Template : AddAction
 }
 
 /**
@@ -108,6 +112,15 @@ fun AddMenuSheet(
             )
 
             Spacer(modifier = Modifier.height(14.dp))
+
+            // Birinchi o'rinda: telefonda noldan dizayn qilish
+            // qiyin, ko'pchilik uchun eng to'g'ri boshlanish shu.
+            MenuRow(
+                icon = Icons.Rounded.Dashboard,
+                title = "Tayyor maket",
+                subtitle = "Tanlang va matnini almashtiring",
+                onClick = { onPick(AddAction.Template) }
+            )
 
             MenuRow(
                 icon = Icons.Rounded.TextFields,

@@ -20,7 +20,7 @@ data class Project(
      * Zaxira muqova — foydalanuvchi hali hech narsa chizmagan yoki
      * muqova fayli yo'qolgan holat uchun.
      */
-    @DrawableRes
+    @param:DrawableRes
     val imageRes: Int,
 
     /**

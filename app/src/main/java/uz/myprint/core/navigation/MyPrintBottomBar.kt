@@ -20,7 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.PersonOutline
-import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,7 +47,7 @@ private enum class BottomNavItem(
     ),
     ORDERS(
         label = "Buyurtmalar",
-        icon = Icons.Outlined.ReceiptLong
+        icon = Icons.AutoMirrored.Outlined.ReceiptLong
     ),
 
     // Sevimlilar Profil ichiga ko'chdi: savat buyurtma oqimining

@@ -5,6 +5,6 @@ import androidx.annotation.DrawableRes
 data class Partner(
     val id: String,
     val name: String,
-    @DrawableRes
+    @param:DrawableRes
     val coverImage: Int
 )

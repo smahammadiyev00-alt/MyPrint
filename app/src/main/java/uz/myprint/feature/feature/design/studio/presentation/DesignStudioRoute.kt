@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -35,6 +36,15 @@ private data class StudioArgs(
 fun DesignStudioRoute(
     productId: String,
     sizeId: String,
+
+    /**
+     * Ochiladigan loyiha.
+     *
+     * Screen.DesignStudio.NEW_PROJECT bo'lsa — bo'sh maket.
+     * Aks holda ombordan aynan shu maket yuklanadi.
+     */
+    projectId: String = Screen.DesignStudio.NEW_PROJECT,
+
     onBackClick: () -> Unit = {},
     onDoneClick: () -> Unit = {}
 ) {
@@ -45,10 +55,21 @@ fun DesignStudioRoute(
 
     val scope = rememberCoroutineScope()
 
+    // YANGI MAKET UCHUN BARQAROR IDENTIFIKATOR.
+    //
+    // Vaqt tamg'asi rememberSaveable ichida olinadi. Agar u har
+    // kompozitsiyada qayta hisoblansa, ekran burilganda yoki
+    // jarayon qayta tiklanganda maket boshqa faylga ko'chib
+    // ketardi va foydalanuvchi ishini yo'qotardi.
+    val sessionStamp = rememberSaveable(productId, sizeId) {
+        System.currentTimeMillis()
+    }
+
     val argsState = produceState<StudioArgs?>(
         initialValue = null,
         key1 = productId,
-        key2 = sizeId
+        key2 = sizeId,
+        key3 = projectId
     ) {
 
         val product = AppContainer.getProductByIdUseCase(productId)
@@ -79,19 +100,29 @@ fun DesignStudioRoute(
                 size = size
             )
 
-            // Saqlangan qoralama bo'lsa o'sha ochiladi.
+            // Ombordan yuklash FAQAT aniq loyiha so'ralganda.
             //
-            // Bu shunchaki qulaylik emas: studiodan chiqib qaytgan
-            // foydalanuvchi ishini joyida ko'rmasa, 20 daqiqalik
-            // mehnat yo'qolgan bo'ladi.
-            val saved = store.load(fresh.id)
+            // Ilgari bu yerda har safar `store.load(fresh.id)`
+            // chaqirilardi va identifikator "mahsulot-o'lcham"
+            // bo'lgani uchun studio doim bitta eski qoralamani
+            // ochib berardi. Endi qaysi maket kerakligini chaqiruvchi
+            // aytadi: "Loyihalarim" — aniq id, mahsulot sahifasi —
+            // bo'sh maket.
+            val document =
+                if (projectId != Screen.DesignStudio.NEW_PROJECT) {
+                    store.load(projectId) ?: fresh
+                } else {
+                    // Har ochilishda yangi fayl. Eski ishlar
+                    // o'z joyida qoladi va ro'yxatdan topiladi.
+                    fresh.copy(id = "${fresh.id}-$sessionStamp")
+                }
 
             StudioArgs(
                 productName = product.name,
                 productId = product.id,
                 sizeId = size.id,
                 category = product.category,
-                document = saved ?: fresh
+                document = document
             )
 
         } else {
@@ -147,6 +178,8 @@ fun DesignStudioRoute(
         viewModel = viewModel,
 
         productName = args.productName,
+
+        productCategory = args.category,
 
         // Orqaga chiqishda ham saqlanadi. Foydalanuvchini
         // "saqlash" tugmasini izlashga majbur qilmaslik kerak —

@@ -7,12 +7,17 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -26,7 +31,11 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import uz.myprint.core.di.AppContainer
 import uz.myprint.feature.feature.design.studio.domain.DesignLayer
+import uz.myprint.feature.feature.design.studio.domain.ImageLayer
 import uz.myprint.feature.feature.design.studio.domain.LayerTransform
 import kotlin.math.atan2
 
@@ -77,6 +86,40 @@ fun DesignCanvas(
     val density = LocalDensity.current
 
     val touchSlop = LocalViewConfiguration.current.touchSlop
+
+    // Rasmlar chizishdan OLDIN yuklanadi.
+    //
+    // Chizish funksiyasi diskdan o'qimaydi: u har kadrda
+    // takrorlanadi va fayl o'qish sakrashga olib kelardi. Bu yerda
+    // esa yuklash faqat rasm qatlamlari ro'yxati o'zgarganda
+    // qayta ishga tushadi.
+    var images by remember { mutableStateOf<Map<String, ImageBitmap>>(emptyMap()) }
+
+    val imagePaths = viewModel.document.layers
+        .filterIsInstance<ImageLayer>()
+        .map { it.sourceUri }
+
+    LaunchedEffect(imagePaths) {
+
+        if (imagePaths.isEmpty()) {
+            images = emptyMap()
+            return@LaunchedEffect
+        }
+
+        val store = AppContainer.imageStore
+
+        images = withContext(Dispatchers.IO) {
+
+            imagePaths
+                .distinct()
+                .mapNotNull { path ->
+                    // Ekran uchun 1600 px yetarli: eng katta
+                    // telefon ekrani ham bundan tor.
+                    store.load(path, maxPx = 1600)?.let { path to it }
+                }
+                .toMap()
+        }
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -184,7 +227,12 @@ fun DesignCanvas(
                 }
         ) {
 
-            drawDocument(document, geometry, textMeasurer)
+            drawDocument(
+                document = document,
+                geometry = geometry,
+                textMeasurer = textMeasurer,
+                images = images
+            )
 
             drawCutMask(geometry)
 
@@ -231,7 +279,18 @@ fun DesignCanvas(
                     transform = selection,
                     geometry = geometry,
                     handles = visibleHandles(selection, geometry, minSidePx),
-                    aspectLocked = viewModel.aspectLocked
+
+                    // Burchaklar rasm uchun ham to'la bo'yaladi:
+                    // foydalanuvchi nisbat saqlanishini oldindan
+                    // ko'rib tursin, cho'zib ko'rgandan keyin
+                    // emas.
+                    cornersLocked = viewModel.aspectLocked ||
+                            viewModel.selectionHasImage,
+
+                    // Yon nuqtalar hech qachon cheklanmaydi,
+                    // shuning uchun ular hamisha to'liq ko'rinadi.
+                    sidesDimmed = viewModel.aspectLocked &&
+                            !viewModel.selectionHasImage
                 )
             }
         }
@@ -286,7 +345,7 @@ private suspend fun AwaitPointerEventScope.resizeLoop(
             // Ilgari bu yerda handle.isCorner turardi va burchakni
             // erkin cho'zishning iloji yo'q edi. Endi qarorni
             // foydalanuvchi ustki paneldagi qulf orqali beradi.
-            keepAspect = viewModel.aspectLocked
+            keepAspect = viewModel.keepAspectFor(handle)
         )
 
         val snapped = SnapEngine(
@@ -774,7 +833,8 @@ private fun DrawScope.drawSelection(
     transform: LayerTransform,
     geometry: CanvasGeometry,
     handles: List<ResizeHandle>,
-    aspectLocked: Boolean
+    cornersLocked: Boolean,
+    sidesDimmed: Boolean
 ) {
 
     val topLeft = geometry.topLeftPx(transform)
@@ -800,7 +860,7 @@ private fun DrawScope.drawSelection(
         if (handle.isCorner) {
 
             drawCircle(
-                color = if (aspectLocked) AccentColor else Color.White,
+                color = if (cornersLocked) AccentColor else Color.White,
                 radius = 12f,
                 center = position
             )
@@ -824,14 +884,14 @@ private fun DrawScope.drawSelection(
 
                 drawRect(
                     color = Color.White,
-                    alpha = if (aspectLocked) 0.5f else 1f,
+                    alpha = if (sidesDimmed) 0.5f else 1f,
                     topLeft = Offset(position.x - w, position.y - h),
                     size = Size(w * 2f, h * 2f)
                 )
 
                 drawRect(
                     color = AccentColor,
-                    alpha = if (aspectLocked) 0.5f else 1f,
+                    alpha = if (sidesDimmed) 0.5f else 1f,
                     topLeft = Offset(position.x - w, position.y - h),
                     size = Size(w * 2f, h * 2f),
                     style = Stroke(width = 2.5f)

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,9 +66,14 @@ fun FontPanel(
             Spacer(modifier = Modifier.height(10.dp))
         }
 
+        // Faqat fayli mavjud shriftlar. Yo'q shriftni ko'rsatib,
+        // bosilganda tizim shriftiga o'tkazish foydalanuvchini
+        // chalg'itadi — u boshqa narsa tanlaganini o'ylaydi.
+        val fonts = remember { DesignFonts.available() }
+
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
 
-            items(DesignFont.entries) { font ->
+            items(fonts) { font ->
 
                 FontTile(
                     font = font,

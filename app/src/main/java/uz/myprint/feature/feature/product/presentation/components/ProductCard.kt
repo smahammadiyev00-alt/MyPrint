@@ -24,7 +24,7 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.LocalCafe
-import androidx.compose.material.icons.rounded.MenuBook
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material.icons.rounded.ViewDay
 import androidx.compose.material3.Icon
@@ -178,7 +178,7 @@ private fun iconFor(category: ProductCategory): ImageVector =
         ProductCategory.MUG -> Icons.Rounded.LocalCafe
 
         ProductCategory.BOOKLET,
-        ProductCategory.CALENDAR -> Icons.Rounded.MenuBook
+        ProductCategory.CALENDAR -> Icons.AutoMirrored.Rounded.MenuBook
 
         ProductCategory.STICKER,
         ProductCategory.LABEL -> Icons.Rounded.ViewDay

@@ -1,7 +1,6 @@
 package uz.myprint.feature.feature.design.studio.domain
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 
 /**
  * Qatlamning joylashuvi. Barcha o'lchamlar MILLIMETRDA.
@@ -73,19 +72,6 @@ enum class TextCase {
     NORMAL,
     UPPER,
     LOWER
-}
-
-/**
- * Tizimda mavjud shriftlar.
- */
-enum class DesignFont(
-    val label: String,
-    val family: FontFamily
-) {
-    SANS("Oddiy", FontFamily.SansSerif),
-    SERIF("Serif", FontFamily.Serif),
-    MONO("Mono", FontFamily.Monospace),
-    CURSIVE("Qo'lyozma", FontFamily.Cursive)
 }
 
 /**

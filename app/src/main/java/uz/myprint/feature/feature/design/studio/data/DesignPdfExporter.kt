@@ -5,12 +5,15 @@ import android.graphics.pdf.PdfDocument as AndroidPdfDocument
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import uz.myprint.core.di.AppContainer
 import uz.myprint.feature.feature.design.studio.domain.DesignDocument
+import uz.myprint.feature.feature.design.studio.domain.ImageLayer
 import uz.myprint.feature.feature.design.studio.presentation.CanvasGeometry
 import uz.myprint.feature.feature.design.studio.presentation.drawDocument
 import java.io.File
@@ -106,14 +109,38 @@ object DesignPdfExporter {
     fun export(
         context: Context,
         document: DesignDocument,
-        target: File
+        target: File,
+
+        /**
+         * Sahifaga bleed qo'shilsinmi.
+         *
+         * DEFAULT — YO'Q, va bu ataylab.
+         *
+         * Ilgari sahifa doim bleed bilan yasalardi. Natijada
+         * studioda 1200 × 800 mm banner chizgan foydalanuvchi
+         * 1300 × 900 mm fayl olardi — chunki bannerda bleed
+         * 50 mm va u har tomondan qo'shilardi. Bu xato deb
+         * qabul qilinadi: mijoz o'zi tanlagan o'lchamni kutadi,
+         * poligrafiya atamalarini emas.
+         *
+         * Bleed haqiqatan kerak bo'lganda (vizitka, stiker —
+         * kesish dopuski uchun) buni ochiq so'rash mumkin.
+         */
+        includeBleed: Boolean = false
     ): PdfExportResult? = runCatching {
 
-        val scale = chooseScale(document)
+        // Sahifaning MO'LJALLANGAN o'lchami.
+        val pageWidthMm =
+            if (includeBleed) document.fullWidthMm else document.widthMm
 
-        val widthMm = document.fullWidthMm / scale
+        val pageHeightMm =
+            if (includeBleed) document.fullHeightMm else document.heightMm
 
-        val heightMm = document.fullHeightMm / scale
+        val scale = chooseScale(pageWidthMm, pageHeightMm)
+
+        val widthMm = pageWidthMm / scale
+
+        val heightMm = pageHeightMm / scale
 
         // YUQORIGA yaxlitlanadi, oddiy yaxlitlash emas.
         //
@@ -153,9 +180,24 @@ object DesignPdfExporter {
         // maket sahifani to'liq qoplaydi va chetda oq chiziq
         // qolmaydi.
         val ptPerMm = maxOf(
-            widthPt / document.fullWidthMm,
-            heightPt / document.fullHeightMm
+            widthPt / pageWidthMm,
+            heightPt / pageHeightMm
         )
+
+        // Qatlamlar koordinatasi TRIM maydonidan boshlanadi
+        // (0,0 — kesish chizig'ining burchagi). CanvasGeometry
+        // esa originPx ga bleed qo'shadi. Bleedsiz sahifada
+        // shuning uchun teskari siljish beriladi, aks holda
+        // maket o'ngga-pastga sirg'anib ketardi.
+        val origin =
+            if (includeBleed) {
+                Offset.Zero
+            } else {
+                Offset(
+                    -document.bleedMm * ptPerMm,
+                    -document.bleedMm * ptPerMm
+                )
+            }
 
         // CanvasGeometry birlik nomini bilmaydi — u faqat
         // "millimetrni shunga ko'paytir" deydi. Aynan shuning
@@ -164,7 +206,7 @@ object DesignPdfExporter {
         val geometry = CanvasGeometry(
             document = document,
             pxPerMm = ptPerMm,
-            originPx = Offset.Zero
+            originPx = origin
         )
 
         CanvasDrawScope().draw(
@@ -179,7 +221,8 @@ object DesignPdfExporter {
                 document = document,
                 geometry = geometry,
                 textMeasurer = textMeasurer,
-                textAsPaths = true
+                textAsPaths = true,
+                images = loadImagesForExport(context, document)
             )
         }
 
@@ -209,12 +252,12 @@ object DesignPdfExporter {
      * qancha katta bo'lsa, bosmaxonada xato qilish ehtimoli ham
      * shuncha yuqori.
      */
-    private fun chooseScale(document: DesignDocument): Float {
+    private fun chooseScale(
+        pageWidthMm: Float,
+        pageHeightMm: Float
+    ): Float {
 
-        val longestMm = maxOf(
-            document.fullWidthMm,
-            document.fullHeightMm
-        )
+        val longestMm = maxOf(pageWidthMm, pageHeightMm)
 
         val longestPt = longestMm * PT_PER_MM
 
@@ -229,4 +272,30 @@ object DesignPdfExporter {
         // lekin buzuq fayldan yaxshiroq.
             ?: ceil(longestPt / MAX_PAGE_PT)
     }
+}
+
+/**
+ * Eksport uchun rasmlarni yuklaydi.
+ *
+ * Ekrandagidan katta chegara: bosmada 300 DPI kerak, ya'ni 10 sm
+ * kenglikdagi rasm uchun 1200 piksel. 4000 px A4 formatgacha
+ * yetarli va xotirani ham bo'g'ib qo'ymaydi.
+ */
+private fun loadImagesForExport(
+    context: Context,
+    document: DesignDocument
+): Map<String, ImageBitmap> {
+
+    val paths = document.layers
+        .filterIsInstance<ImageLayer>()
+        .map { it.sourceUri }
+        .distinct()
+
+    if (paths.isEmpty()) return emptyMap()
+
+    val store = AppContainer.imageStore
+
+    return paths.mapNotNull { path ->
+        store.load(path, maxPx = 4000)?.let { path to it }
+    }.toMap()
 }

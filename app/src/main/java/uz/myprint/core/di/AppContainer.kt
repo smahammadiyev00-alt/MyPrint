@@ -3,6 +3,7 @@ package uz.myprint.core.di
 import android.content.Context
 import uz.myprint.feature.feature.cart.data.repository.InMemoryCartRepository
 import uz.myprint.feature.feature.cart.domain.repository.CartRepository
+import uz.myprint.feature.feature.design.studio.data.DesignImageStore
 import uz.myprint.feature.feature.design.studio.data.DesignProjectStore
 import uz.myprint.feature.feature.printshop.data.repository.PrintShopRepositoryImpl
 import uz.myprint.feature.feature.printshop.domain.usecase.GetPrintShopOffersUseCase
@@ -72,5 +73,14 @@ object AppContainer {
     // darhol ko'rinishi kerak.
     val projectStore: DesignProjectStore by lazy {
         DesignProjectStore(appContext)
+    }
+
+    // Rasmlar ombori
+    //
+    // Bitta nusxada bo'lishi shart: ichida xotira keshi bor va
+    // har ekran o'z nusxasini yaratsa, bir xil rasm bir necha
+    // marta yuklanib xotirani yeb qo'yardi.
+    val imageStore: DesignImageStore by lazy {
+        DesignImageStore(appContext)
     }
 }
